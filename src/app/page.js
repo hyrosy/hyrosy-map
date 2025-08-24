@@ -35,6 +35,7 @@ export default function Home() {
     const [cart, setCart] = useState([]);
     const [clientSecret, setClientSecret] = useState('');
     const [selectedPin, setSelectedPin] = useState(null);
+    const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
 
     const filterData = {
       "Artisan": ["Leather"],
@@ -109,6 +110,40 @@ export default function Home() {
             setCart([]);
         }, 1000);
     };
+    // ========================================================================
+    // This hook fetches products when a pin's modal is opened
+    // ========================================================================
+    useEffect(() => {
+        if (selectedPin && selectedPin.map_category === 'Artisan' && selectedPin.category_connector_id) {
+            const fetchProducts = async () => {
+                setModalProducts({ status: 'loading', data: [] }); // Set loading state
+
+                const wooApiUrl = `https://hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`;
+                const consumerKey = 'ck_a87f8c8bec71faa8c85449c7c7aff67fb0959522';
+                const consumerSecret = 'cs_71b6778aa70ae1f00ed0e12af05ac1823306afe4';
+                const authString = btoa(`${consumerKey}:${consumerSecret}`);
+
+                try {
+                    const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
+                    if (!response.ok) throw new Error('WooCommerce API response not ok');
+                    const products = await response.json();
+                    
+                    if (products && products.length > 0) {
+                        setModalProducts({ status: 'success', data: products });
+                    } else {
+                        setModalProducts({ status: 'success', data: [] }); // No products found
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch WooCommerce products:", error);
+                    setModalProducts({ status: 'error', data: [] });
+                }
+            };
+            fetchProducts();
+        } else {
+            // If the pin is not an artisan or has no ID, reset the products
+            setModalProducts({ status: 'idle', data: [] });
+        }
+    }, [selectedPin]); // This hook runs every time `selectedPin` changes
 
 
     // ========================================================================
@@ -204,11 +239,30 @@ export default function Home() {
         {selectedPin && (
           <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.modalCloseBtn} onClick={() => setSelectedPin(null)}>&times;</button>
               {selectedPin.featured_image && <img src={selectedPin.featured_image} alt={selectedPin.title} className={styles.modalImage} />}
               <div className={styles.modalTextContent}>
                 <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
                 <p className={styles.popupCategory}>{selectedPin.description}</p>
-                {/* Product carousel will go here */}
+                
+                {/* --- NEW: Product Carousel Logic --- */}
+                {selectedPin.map_category === 'Artisan' && (
+                    <div className="product-carousel-container" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                        {modalProducts.status === 'loading' && <p>Loading products...</p>}
+                        {modalProducts.status === 'error' && <p>Could not load products.</p>}
+                        {modalProducts.status === 'success' && modalProducts.data.length === 0 && <p>No products found for this artisan.</p>}
+                        {modalProducts.status === 'success' && modalProducts.data.length > 0 && (
+                            <>
+                                <h4>Products from this artisan:</h4>
+                                {modalProducts.data.map(product => (
+                                    <div key={product.id} style={{padding: '5px 0', borderBottom: '1px solid #eee', cursor: 'pointer'}}>
+                                        {product.name}
+                                    </div>
+                                ))}
+                            </>
+                        )}
+                    </div>
+                )}
               </div>
             </div>
           </div>
