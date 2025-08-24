@@ -1,0 +1,198 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import styles from './page.module.css';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import CheckoutForm from '@/components/CheckoutForm';
+
+// ========================================================================
+// SECTION: DYNAMIC IMPORT
+// ========================================================================
+const Map = dynamic(() => import('@/components/Map'), { 
+  ssr: false 
+});
+
+const stripePromise = loadStripe('pk_test_51PWc0EP8TGcYvcnx0Fq8q8z345E7b4Cg0B3wR9gqJcK7w9d7yG4X3rXw1y4oP4D8b5c9v5D6D8v4vB3c9w0g7T5e0Y6R');
+
+// ========================================================================
+// SECTION: HOMEPAGE COMPONENT
+// ========================================================================
+export default function Home() {
+    const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
+    const [isCartPanelOpen, setCartPanelOpen] = useState(false);
+    const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
+    const [allPins, setAllPins] = useState([]);
+    const [displayedPins, setDisplayedPins] = useState([]);
+    const [activeMainCategory, setActiveMainCategory] = useState("Adventures");
+    const [selectedSubCategories, setSelectedSubCategories] = useState(new Set());
+    const [cart, setCart] = useState([]);
+    const [clientSecret, setClientSecret] = useState('');
+    const [selectedPin, setSelectedPin] = useState(null);
+
+    const filterData = {
+      "Adventures": ["Quad Biking", "Camel Rides", "Buggy Tours"],
+      "Workshops": ["Cooking Class", "Pottery", "Artisan Crafts"],
+      "Food": ["Traditional Food", "Moroccan Sweets", "Cafes"],
+      "Monuments": ["Historic Sites", "Gardens", "Museums"]
+    };
+
+    const handleFilter = () => {
+        const selectedArray = Array.from(selectedSubCategories);
+        if (selectedArray.length === 0) {
+            setDisplayedPins(allPins);
+        } else {
+            const filtered = allPins.filter(pin => selectedArray.includes(pin.subCategory));
+            setDisplayedPins(filtered);
+        }
+        setFilterPanelOpen(false);
+    };
+
+    const handleReset = () => {
+        setSelectedSubCategories(new Set());
+        setDisplayedPins(allPins);
+    };
+
+    const handleAddToCart = (pinToAdd) => {
+      setCart(prevCart => {
+          if (prevCart.find(item => item.id === pinToAdd.id)) {
+              alert('Item is already in your cart.');
+              return prevCart;
+          }
+          return [...prevCart, pinToAdd];
+      });
+    };
+    
+    const handleCheckout = async () => {
+        if (cart.length === 0) {
+            alert('Your cart is empty.');
+            return;
+        }
+        setCartPanelOpen(false);
+        const totalAmountInCents = 1999; 
+
+        try {
+            const res = await fetch('http://localhost:3001/create-payment-intent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: totalAmountInCents }),
+            });
+            const data = await res.json();
+            
+            if (data.clientSecret) {
+                setClientSecret(data.clientSecret);
+                setCheckoutModalOpen(true);
+            } else {
+                alert('Could not start checkout. Please try again.');
+            }
+        } catch (error) {
+            console.error("Failed to create payment intent:", error);
+            alert('Could not connect to the payment server.');
+        }
+    };
+    
+    const onPaymentSuccess = () => {
+        setTimeout(() => {
+            alert('Payment confirmed! Thank you.');
+            setCheckoutModalOpen(false);
+            setClientSecret('');
+            setCart([]);
+        }, 1000);
+    };
+
+    return (
+      <main className={styles.mainContainer}>
+        <Map 
+          allPins={allPins}
+          setAllPins={setAllPins}
+          displayedPins={displayedPins}
+          setDisplayedPins={setDisplayedPins}
+          onAddToCart={handleAddToCart}
+          onPinClick={setSelectedPin}
+        />
+
+        <button onClick={() => setFilterPanelOpen(true)} className={styles.openFilterBtn}>🔍 Filter Pins</button>
+        <button onClick={() => setCartPanelOpen(true)} className={styles.cartIcon}>
+            🛒
+            {cart.length > 0 && <span className={styles.cartCount}>{cart.length}</span>}
+        </button>
+        
+        <div className={`${styles.panel} ${styles.filterPanel} ${isFilterPanelOpen ? styles.open : ''}`}>
+            <div className={styles.panelHeader}>
+              <h2>Filter Pins</h2>
+              <button onClick={() => setFilterPanelOpen(false)} className={styles.closeBtn}>&times;</button>
+            </div>
+            <div className={styles.filterContent}>
+              <div className={styles.mainCategories}>
+                  {Object.keys(filterData).map(category => (
+                      <div key={category} className={activeMainCategory === category ? styles.active : ''} onClick={() => setActiveMainCategory(category)}>
+                          { { "Artisans": "🛍️", "Experiences": "✨", "Monuments": "🏛️" }[category] || '📍' } {category}
+                      </div>
+                  ))}
+              </div>
+              <div className={styles.subCategories}>
+                  {(filterData[activeMainCategory] || []).map(subCategory => (
+                      <div key={subCategory} className={selectedSubCategories.has(subCategory) ? styles.selected : ''} onClick={() => {
+                          const newSet = new Set(selectedSubCategories);
+                          if (newSet.has(subCategory)) newSet.delete(subCategory);
+                          else newSet.add(subCategory);
+                          setSelectedSubCategories(newSet);
+                      }}>
+                          {subCategory}
+                      </div>
+                  ))}
+              </div>
+            </div>
+            <div className={styles.panelFooter}>
+                <button onClick={handleReset} className={styles.panelBtn}>Reset</button>
+                <button onClick={handleFilter} className={styles.panelBtn} style={{background: '#007bff'}}>View Pins</button>
+            </div>
+        </div>
+
+        <div className={`${styles.panel} ${styles.cartPanel} ${isCartPanelOpen ? styles.open : ''}`}>
+            <div className={styles.panelHeader}>
+                <h2>Your Itinerary</h2>
+                <button onClick={() => setCartPanelOpen(false)} className={styles.closeBtn}>&times;</button>
+            </div>
+            <div id="cart-items">
+                {cart.length === 0 ? <p>Your cart is empty.</p> :
+                    cart.map(item => <div key={item.id} style={{padding: '5px 0'}}>- {item.title}</div>)
+                }
+            </div>
+            <div className={styles.panelFooter}>
+                <button onClick={handleCheckout} className={styles.panelBtn} style={{width: '100%', background: '#28a745'}}>
+                    Proceed to Checkout
+                </button>
+            </div>
+        </div>
+
+        {isCheckoutModalOpen && clientSecret && (
+            <div className={styles.checkoutModal}>
+                <div className={styles.checkoutFormContainer}>
+                    <div className={styles.panelHeader}>
+                        <h2>Complete Payment</h2>
+                        <button onClick={() => setCheckoutModalOpen(false)} className={styles.closeBtn}>&times;</button>
+                    </div>
+                    <Elements options={{ clientSecret }} stripe={stripePromise}>
+                        <CheckoutForm onPaymentSuccess={onPaymentSuccess} />
+                    </Elements>
+                </div>
+            </div>
+        )}
+
+        {selectedPin && (
+          <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              {selectedPin.featured_image && <img src={selectedPin.featured_image} alt={selectedPin.title} className={styles.modalImage} />}
+              <div className={styles.modalTextContent}>
+                <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
+                <p className={styles.popupCategory}>{selectedPin.description}</p>
+                {/* Product carousel will go here */}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    );
+}

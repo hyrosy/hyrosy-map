@@ -1,0 +1,190 @@
+.mainContainer {
+  height: 100vh;
+  width: 100vw;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.mapContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.panel {
+    position: absolute; top: 0; width: 350px; height: 100%;
+    background: rgba(30, 30, 30, 0.95); color: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease-in-out; z-index: 2; display: flex; flex-direction: column;
+    padding: 20px; box-sizing: border-box;
+}
+.filterPanel { left: 0; transform: translateX(-100%); }
+.filterPanel.open { transform: translateX(0); }
+.cartPanel { right: 0; transform: translateX(100%); }
+.cartPanel.open { transform: translateX(0); }
+.panelHeader { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px; }
+.panelHeader h2 { margin: 0; font-size: 1.2em; }
+.closeBtn { background: none; border: none; color: #fff; font-size: 1.5em; cursor: pointer; }
+.filterContent { display: flex; flex-grow: 1; overflow: hidden; }
+.mainCategories { width: 130px; border-right: 1px solid #444; padding-right: 15px; overflow-y: auto; }
+.mainCategories div { padding: 10px; cursor: pointer; border-radius: 5px; margin-bottom: 5px; font-size: 0.9em; }
+.mainCategories div.active { background: #007bff; }
+.subCategories { flex-grow: 1; padding-left: 15px; overflow-y: auto; }
+.subCategories div { padding: 8px 10px; cursor: pointer; border-radius: 5px; margin-bottom: 5px; background: #444; border: 1px solid #444; }
+.subCategories div.selected { background: #007bff; border-color: #009bff; }
+.panelFooter { border-top: 1px solid #444; padding-top: 15px; display: flex; justify-content: space-between; }
+.panelBtn { border: 1px solid #666; background: #444; color: #fff; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+.openFilterBtn {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; border: none; padding: 15px 25px;
+    border-radius: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-size: 1em; font-weight: bold; z-index: 1; cursor: pointer;
+}
+.cartIcon {
+    position: absolute; top: 20px; right: 20px;
+    background: #fff; border: none; width: 50px; height: 50px;
+    border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    font-size: 1.5em; z-index: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.cartCount {
+    position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; border-radius: 50%; width: 22px; height: 22px;
+    font-size: 0.7em; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 2px solid white;
+}
+.mapboxgl-popup-content { font-family: inherit; padding: 0; width: 220px; box-shadow: 0 2px 15px rgba(0,0,0,0.2); border-radius: 10px; }
+.popupContentContainer { padding: 15px; }
+.popupTitle { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; }
+.popupCategory { font-size: 0.8em; color: #888; margin-bottom: 10px; }
+.popupFooter { display: flex; border-top: 1px solid #eee;}
+.popupButton { flex: 1; border: none; padding: 12px; font-weight: bold; cursor: pointer; background-color: transparent; }
+.btnPrimary { color: #007bff; border-right: 1px solid #eee;}
+.btnSecondary { color: #6c757d; }
+.checkoutModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.checkoutFormContainer {
+  width: 90%;
+  max-width: 500px;
+  background: #2e2e2e;
+  border-radius: 8px;
+  color: white;
+}
+.checkoutFormContainer .panelHeader {
+    padding: 15px 20px;
+    margin-bottom: 0;
+}
+.checkoutForm {
+  padding: 20px;
+}
+.payButton {
+  background: #5469d4;
+  color: #ffffff;
+  border-radius: 4px;
+  border: 0;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: block;
+  transition: all 0.2s ease;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.07);
+  width: 100%;
+  margin-top: 20px;
+}
+.payButton:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.paymentMessage {
+  color: rgb(200, 200, 200);
+  font-size: 16px;
+  line-height: 20px;
+  padding-top: 12px;
+  text-align: center;
+}
+.spinner,
+.spinner:before,
+.spinner:after {
+  border-radius: 50%;
+  width: 1em;
+  height: 1em;
+  animation-fill-mode: both;
+  animation: bblFadInOut 1.8s infinite ease-in-out;
+}
+.spinner {
+  color: #FFF;
+  font-size: 20px;
+  position: relative;
+  text-indent: -9999em;
+  transform: translateZ(0);
+  animation-delay: -0.16s;
+  margin: auto;
+}
+@keyframes bblFadInOut {
+  0%, 80%, 100% { box-shadow: 0 2.5em 0 -1.3em }
+  40% { box-shadow: 0 2.5em 0 0 }
+}
+
+/* --- Window pop up ADD THESE STYLES AT THE END --- */
+.fullScreenModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modalContent {
+  background: #fff;
+  width: 90%;
+  max-width: 450px;
+  max-height: 90vh;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalImage {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.modalTextContent {
+  padding: 20px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2em;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 101;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
