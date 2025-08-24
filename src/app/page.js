@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import styles from './page.module.css';
 import { loadStripe } from '@stripe/stripe-js';
@@ -8,18 +8,23 @@ import { Elements } from '@stripe/react-stripe-js';
 import CheckoutForm from '@/components/CheckoutForm';
 
 // ========================================================================
-// SECTION: DYNAMIC IMPORT
+// SECTION: DYNAMIC IMPORT & STRIPE INITIALIZATION
 // ========================================================================
 const Map = dynamic(() => import('@/components/Map'), { 
   ssr: false 
 });
 
-const stripePromise = loadStripe('pk_test_51PWc0EP8TGcYvcnx0Fq8q8z345E7b4Cg0B3wR9gqJcK7w9d7yG4X3rXw1y4oP4D8b5c9v5D6D8v4vB3c9w0g7T5e0Y6R');
+// Using your LIVE Publishable Key. For testing, you can swap this with your test key.
+const stripePromise = loadStripe('pk_live_51PWc0EP8TGcYvcnxRvYWWqJj4CU7dDENqzmk5zVfn2uSfF7At1RW7KuNjQCogPQRnBMCy1wEcQPxDRGj3rMk6Kgo00HZs2tuve');
+
 
 // ========================================================================
 // SECTION: HOMEPAGE COMPONENT
 // ========================================================================
 export default function Home() {
+    // ========================================================================
+    // SUB-SECTION: STATE MANAGEMENT (No Duplicates)
+    // ========================================================================
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
     const [isCartPanelOpen, setCartPanelOpen] = useState(false);
     const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -32,12 +37,16 @@ export default function Home() {
     const [selectedPin, setSelectedPin] = useState(null);
 
     const filterData = {
+      "Artisan": ["Leather"],
       "Adventures": ["Quad Biking", "Camel Rides", "Buggy Tours"],
       "Workshops": ["Cooking Class", "Pottery", "Artisan Crafts"],
       "Food": ["Traditional Food", "Moroccan Sweets", "Cafes"],
       "Monuments": ["Historic Sites", "Gardens", "Museums"]
     };
 
+    // ========================================================================
+    // SUB-SECTION: HELPER FUNCTIONS
+    // ========================================================================
     const handleFilter = () => {
         const selectedArray = Array.from(selectedSubCategories);
         if (selectedArray.length === 0) {
@@ -70,10 +79,10 @@ export default function Home() {
             return;
         }
         setCartPanelOpen(false);
-        const totalAmountInCents = 1999; 
+        const totalAmountInCents = 1999; // Placeholder price
 
         try {
-            const res = await fetch('http://localhost:3001/create-payment-intent', {
+            const res = await fetch('/api/create-payment-intent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ amount: totalAmountInCents }),
@@ -101,6 +110,10 @@ export default function Home() {
         }, 1000);
     };
 
+
+    // ========================================================================
+    // SUB-SECTION: RENDER
+    // ========================================================================
     return (
       <main className={styles.mainContainer}>
         <Map 
@@ -112,12 +125,14 @@ export default function Home() {
           onPinClick={setSelectedPin}
         />
 
+        {/* --- UI Elements --- */}
         <button onClick={() => setFilterPanelOpen(true)} className={styles.openFilterBtn}>🔍 Filter Pins</button>
         <button onClick={() => setCartPanelOpen(true)} className={styles.cartIcon}>
             🛒
             {cart.length > 0 && <span className={styles.cartCount}>{cart.length}</span>}
         </button>
         
+        {/* --- Filter Panel --- */}
         <div className={`${styles.panel} ${styles.filterPanel} ${isFilterPanelOpen ? styles.open : ''}`}>
             <div className={styles.panelHeader}>
               <h2>Filter Pins</h2>
@@ -127,7 +142,7 @@ export default function Home() {
               <div className={styles.mainCategories}>
                   {Object.keys(filterData).map(category => (
                       <div key={category} className={activeMainCategory === category ? styles.active : ''} onClick={() => setActiveMainCategory(category)}>
-                          { { "Artisans": "🛍️", "Experiences": "✨", "Monuments": "🏛️" }[category] || '📍' } {category}
+                          { { "Adventures": "🛍️", "Workshops": "✨", "Food": "🍽️", "Monuments": "🏛️" }[category] || '📍' } {category}
                       </div>
                   ))}
               </div>
@@ -150,23 +165,27 @@ export default function Home() {
             </div>
         </div>
 
+        {/* --- Cart Panel --- */}
         <div className={`${styles.panel} ${styles.cartPanel} ${isCartPanelOpen ? styles.open : ''}`}>
             <div className={styles.panelHeader}>
                 <h2>Your Itinerary</h2>
                 <button onClick={() => setCartPanelOpen(false)} className={styles.closeBtn}>&times;</button>
             </div>
-            <div id="cart-items">
+            <div id="cart-items" style={{flexGrow: 1, overflowY: 'auto'}}>
                 {cart.length === 0 ? <p>Your cart is empty.</p> :
                     cart.map(item => <div key={item.id} style={{padding: '5px 0'}}>- {item.title}</div>)
                 }
             </div>
-            <div className={styles.panelFooter}>
-                <button onClick={handleCheckout} className={styles.panelBtn} style={{width: '100%', background: '#28a745'}}>
-                    Proceed to Checkout
-                </button>
-            </div>
+            {cart.length > 0 && (
+              <div className={styles.panelFooter}>
+                  <button onClick={handleCheckout} className={styles.panelBtn} style={{width: '100%', background: '#28a745'}}>
+                      Proceed to Checkout
+                  </button>
+              </div>
+            )}
         </div>
 
+        {/* --- Checkout Modal --- */}
         {isCheckoutModalOpen && clientSecret && (
             <div className={styles.checkoutModal}>
                 <div className={styles.checkoutFormContainer}>
@@ -181,6 +200,7 @@ export default function Home() {
             </div>
         )}
 
+        {/* --- Full-Screen Pin Detail Modal --- */}
         {selectedPin && (
           <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
