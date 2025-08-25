@@ -129,7 +129,7 @@ export default function Home() {
                 try {
                     const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
                     if (!response.ok) throw new Error('WooCommerce API response not ok');
-                    const products = await response.json();
+                    let products = await response.json();
 
                     // The API returns a single object for a product ID, but an array for a category.
                     // We normalize the result into an array for easier processing.
