@@ -29,25 +29,25 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('API response was not ok.');
             const locations = await response.json();
-            
+           
             const livePinsData = locations.map(loc => {
                 if (!loc.acf || !loc.acf.gps_coordinates) return null;
                 const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
                 const imageUrl = loc.acf.featured_image ? loc.acf.featured_image.url : null;
                 const description = loc.acf.description || '';
-                return { 
-                    id: loc.id, 
-                    lng, lat, 
-                    title: loc.title.rendered, 
+                return {
+                    id: loc.id,
+                    lng, lat,
+                    title: loc.title.rendered,
                     description: description,
                     featured_image: imageUrl,
                     subCategory: loc.acf.map_sub_category,
                     category_connector_id: loc.acf.category_connector_id,
                     map_category: loc.acf.map_category ? loc.acf.map_category[0] : null,
-                    color: '#007bff' 
+                    color: '#007bff'
                 };
             }).filter(Boolean);
-            
+           
             console.log('SUCCESS: Fetched', livePinsData.length, 'live pins from WordPress.');
             setAllPins(livePinsData);
             setDisplayedPins(livePinsData);
@@ -61,7 +61,7 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
     // ========================================================================
     useEffect(() => {
         if (!map.current || !displayedPins) return;
-        
+       
         markersRef.current.forEach(marker => marker.remove());
         markersRef.current = [];
 
@@ -82,7 +82,7 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
             const marker = new mapboxgl.Marker(markerEl)
                 .setLngLat([pin.lng, pin.lat])
                 .addTo(map.current);
-            
+           
             markersRef.current.push(marker);
         });
     }, [displayedPins, onPinClick]);
