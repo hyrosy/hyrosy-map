@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import styles from '@/app/page.module.css';
@@ -23,7 +23,7 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
     // ========================================================================
     // SUB-SECTION: DATA FETCHING FUNCTION
     // ========================================================================
-    async function fetchLocations() {
+    const fetchLocations = useCallback(async () => {
         const apiUrl = 'https://data.hyrosy.com/wp-json/wp/v2/locations?acf_format=standard';
         try {
             const response = await fetch(apiUrl);
@@ -54,7 +54,7 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
         } catch (error) {
             console.error('API fetch failed:', error);
         }
-    }
+    }, [setAllPins, setDisplayedPins]); // Add dependencies here
 
     // ========================================================================
     // SUB-SECTION: PIN DISPLAY LOGIC
@@ -85,7 +85,7 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
             
             markersRef.current.push(marker);
         });
-    }, [displayedPins]);
+    }, [displayedPins, onPinClick]);
 
     // ========================================================================
     // SUB-SECTION: MAP INITIALIZATION & LIFECYCLE
@@ -106,7 +106,7 @@ const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart
             map.current.addLayer({'id': 'add-3d-buildings','source': 'composite','source-layer': 'building','filter': ['==', 'extrude', 'true'],'type': 'fill-extrusion','minzoom': 15,'paint': {'fill-extrusion-color': '#aaa','fill-extrusion-height': ['get', 'height'],'fill-extrusion-base': ['get', 'min_height'],'fill-extrusion-opacity': 0.6}});
             fetchLocations();
         });
-    }, []);
+    }, [fetchLocations]); // The dependency is now correctly added here
 
     return (
         <div ref={mapContainer} className={styles.mapContainer} />
