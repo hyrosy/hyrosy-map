@@ -128,11 +128,11 @@ export default function Home() {
                 setModalProducts({ status: 'loading', data: [] });
 
                 const wooApiUrl = selectedPin.category_connector_id
-                    ? `https://hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
-                    : `https://hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
+                    ? `https://data.hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
+                    : `https://data.hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
 
-                const consumerKey = 'ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e';
-                const consumerSecret = 'cs_9b522ebc8221748dad57255f1dc9c8eec5ec1b1d';
+                const consumerKey = 'ck_6083a60490a09aa1bcfe51c7c726b6688aa7ae31';
+                const consumerSecret = 'cs_32aa0ca86999411c24a3aeb4b11c2cb0ce9f186b';
                 const authString = btoa(`${consumerKey}:${consumerSecret}`);
 
                 try {
