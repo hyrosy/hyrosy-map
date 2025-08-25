@@ -121,9 +121,9 @@ export default function Home() {
                 const wooApiUrl = selectedPin.category_connector_id
                     ? `https://hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
                     : `https://hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
-                    
-                const consumerKey = 'ck_a87f8c8bec71faa8c85449c7c7aff67fb0959522';
-                const consumerSecret = 'cs_71b6778aa70ae1f00ed0e12af05ac1823306afe4';
+
+                const consumerKey = 'ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e';
+                const consumerSecret = 'cs_9b522ebc8221748dad57255f1dc9c8eec5ec1b1d';
                 const authString = btoa(`${consumerKey}:${consumerSecret}`);
 
                 try {
@@ -149,7 +149,6 @@ export default function Home() {
             };
             fetchProducts();
         } else {
-            // If the pin is not an artisan or has no ID, reset the products
             setModalProducts({ status: 'idle', data: [] });
         }
     }, [selectedPin]); // This hook runs every time `selectedPin` changes
