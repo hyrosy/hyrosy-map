@@ -6,7 +6,8 @@ import styles from './page.module.css';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import CheckoutForm from '@/components/CheckoutForm';
-
+import ProductDetail from '@/components/ProductDetail';
+import Image from 'next/image';
 // ========================================================================
 // SECTION: DYNAMIC IMPORT & STRIPE INITIALIZATION
 // ========================================================================
@@ -265,7 +266,7 @@ export default function Home() {
                 />
               ) : (
                 <>
-                  {selectedPin.featured_image && <img src={selectedPin.featured_image} alt={selectedPin.title} className={styles.modalImage} />}
+                  {selectedPin.featured_image && <Image src={selectedPin.featured_image} alt={selectedPin.title} width={450} height={200} className={styles.modalImage} />}
                   <div className={styles.modalTextContent}>
                     <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
                     <p className={styles.popupCategory}>{selectedPin.description}</p>
