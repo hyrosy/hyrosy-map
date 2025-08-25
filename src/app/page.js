@@ -114,11 +114,14 @@ export default function Home() {
     // This hook fetches products when a pin's modal is opened
     // ========================================================================
     useEffect(() => {
-        if (selectedPin && selectedPin.map_category === 'Artisan' && selectedPin.category_connector_id) {
+        if (selectedPin && selectedPin.category_connector_id) {
             const fetchProducts = async () => {
                 setModalProducts({ status: 'loading', data: [] }); // Set loading state
 
-                const wooApiUrl = `https://hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`;
+                const wooApiUrl = selectedPin.category_connector_id
+                    ? `https://hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
+                    : `https://hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
+                    
                 const consumerKey = 'ck_a87f8c8bec71faa8c85449c7c7aff67fb0959522';
                 const consumerSecret = 'cs_71b6778aa70ae1f00ed0e12af05ac1823306afe4';
                 const authString = btoa(`${consumerKey}:${consumerSecret}`);
@@ -127,7 +130,13 @@ export default function Home() {
                     const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
                     if (!response.ok) throw new Error('WooCommerce API response not ok');
                     const products = await response.json();
-                    
+
+                    // The API returns a single object for a product ID, but an array for a category.
+                    // We normalize the result into an array for easier processing.
+                    if (!Array.isArray(products)) {
+                        products = [products];
+                    }
+
                     if (products && products.length > 0) {
                         setModalProducts({ status: 'success', data: products });
                     } else {
