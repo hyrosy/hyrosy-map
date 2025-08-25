@@ -36,6 +36,8 @@ export default function Home() {
     const [clientSecret, setClientSecret] = useState('');
     const [selectedPin, setSelectedPin] = useState(null);
     const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
+    const [viewedProduct, setViewedProduct] = useState(null); // To track the product detail view
+
 
     const filterData = {
       "Artisan": ["Leather"],
@@ -114,9 +116,15 @@ export default function Home() {
     // This hook fetches products when a pin's modal is opened
     // ========================================================================
     useEffect(() => {
-        if (selectedPin && selectedPin.category_connector_id) {
+        // When the modal closes, reset the viewed product
+        if (!selectedPin) {
+            setViewedProduct(null);
+            return;
+        }
+
+        if (selectedPin.category_connector_id || selectedPin.connector_id) {
             const fetchProducts = async () => {
-                setModalProducts({ status: 'loading', data: [] }); // Set loading state
+                setModalProducts({ status: 'loading', data: [] });
 
                 const wooApiUrl = selectedPin.category_connector_id
                     ? `https://hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
@@ -127,21 +135,20 @@ export default function Home() {
                 const authString = btoa(`${consumerKey}:${consumerSecret}`);
 
                 try {
-                    const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
+                    const response = await fetch(wooApiUrl, {
+                        headers: { 'Authorization': `Basic ${authString}` }
+                    });
                     if (!response.ok) throw new Error('WooCommerce API response not ok');
+                    
+                    // Use 'let' instead of 'const' to allow reassignment
                     let products = await response.json();
-
-                    // The API returns a single object for a product ID, but an array for a category.
-                    // We normalize the result into an array for easier processing.
+                    
+                    // Normalize the result into an array if it's a single object
                     if (!Array.isArray(products)) {
                         products = [products];
                     }
 
-                    if (products && products.length > 0) {
-                        setModalProducts({ status: 'success', data: products });
-                    } else {
-                        setModalProducts({ status: 'success', data: [] }); // No products found
-                    }
+                    setModalProducts({ status: 'success', data: products });
                 } catch (error) {
                     console.error("Failed to fetch WooCommerce products:", error);
                     setModalProducts({ status: 'error', data: [] });
@@ -248,30 +255,40 @@ export default function Home() {
           <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
               <button className={styles.modalCloseBtn} onClick={() => setSelectedPin(null)}>&times;</button>
-              {selectedPin.featured_image && <img src={selectedPin.featured_image} alt={selectedPin.title} className={styles.modalImage} />}
-              <div className={styles.modalTextContent}>
-                <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
-                <p className={styles.popupCategory}>{selectedPin.description}</p>
-                
-                {/* --- NEW: Product Carousel Logic --- */}
-                {selectedPin.map_category === 'Artisan' && (
+              
+              {/* This now conditionally renders the Product Detail or the Location Info */}
+              {viewedProduct ? (
+                <ProductDetail 
+                    product={viewedProduct}
+                    onAddToCart={handleAddToCart}
+                    onBack={() => setViewedProduct(null)}
+                />
+              ) : (
+                <>
+                  {selectedPin.featured_image && <img src={selectedPin.featured_image} alt={selectedPin.title} className={styles.modalImage} />}
+                  <div className={styles.modalTextContent}>
+                    <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
+                    <p className={styles.popupCategory}>{selectedPin.description}</p>
+                    
+                    {/* Product Carousel Logic */}
                     <div className="product-carousel-container" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                         {modalProducts.status === 'loading' && <p>Loading products...</p>}
                         {modalProducts.status === 'error' && <p>Could not load products.</p>}
-                        {modalProducts.status === 'success' && modalProducts.data.length === 0 && <p>No products found for this artisan.</p>}
+                        {modalProducts.status === 'success' && modalProducts.data.length === 0 && <p>No products found.</p>}
                         {modalProducts.status === 'success' && modalProducts.data.length > 0 && (
                             <>
-                                <h4>Products from this artisan:</h4>
+                                <h4>Products Available:</h4>
                                 {modalProducts.data.map(product => (
-                                    <div key={product.id} style={{padding: '5px 0', borderBottom: '1px solid #eee', cursor: 'pointer'}}>
+                                    <div key={product.id} onClick={() => setViewedProduct(product)} style={{padding: '8px 5px', borderBottom: '1px solid #333', cursor: 'pointer', color: '#fff'}}>
                                         {product.name}
                                     </div>
                                 ))}
                             </>
                         )}
                     </div>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
