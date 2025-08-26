@@ -31,6 +31,7 @@ export default function Home() {
     const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
     const [viewedProduct, setViewedProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(false); // <-- Loading state
+    const [isLocatorOpen, setLocatorOpen] = useState(false); // New state for Quick Locator panel
 
     // City-centric state
     const [selectedCity, setSelectedCity] = useState(null);
@@ -200,7 +201,12 @@ export default function Home() {
 
     return (
       <main className={styles.mainContainer}>
-
+        {isLoading && (
+            <div className={styles.loadingOverlay}>
+                <div className={styles.spinner}></div>
+                <p>Entering City...</p>
+            </div>
+        )}
         <Map 
             mapRef={mapRef}
             displayedPins={displayedPins}
@@ -211,8 +217,35 @@ export default function Home() {
             onStyleLoad={() => setIsLoading(false)} // <-- off loading when style loads
 
         />
-        <QuickLocator cities={cityData} onCitySelect={handleCitySelect} onResetView={handleResetView} />
         {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
+
+        {/* --- THIS IS THE NEW QUICK LOCATOR LOGIC --- */}
+        <button 
+            className={styles.locatorIcon} 
+            onClick={() => setLocatorOpen(true)}
+        >
+            📍
+        </button>
+
+        {isLocatorOpen && (
+            <>
+                <div 
+                    className={styles.locatorBackdrop} 
+                    onClick={() => setLocatorOpen(false)}
+                />
+                <QuickLocator 
+                    cities={cityData} 
+                    onCitySelect={(cityKey) => {
+                        handleCitySelect(cityKey);
+                        setLocatorOpen(false); // Close panel on selection
+                    }} 
+                    onResetView={() => {
+                        handleResetView();
+                        setLocatorOpen(false); // Close panel on selection
+                    }} 
+                />
+            </>
+        )}
         <button onClick={() => setFilterPanelOpen(true)} className={styles.openFilterBtn}>🔍 Filter Pins</button>
         <button onClick={() => setCartPanelOpen(true)} className={styles.cartIcon}>
             🛒
