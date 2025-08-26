@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import styles from './page.module.css';
 import { loadStripe } from '@stripe/stripe-js';
@@ -8,24 +8,16 @@ import { Elements } from '@stripe/react-stripe-js';
 import CheckoutForm from '@/components/CheckoutForm';
 import ProductDetail from '@/components/ProductDetail';
 import Image from 'next/image';
-// ========================================================================
-// SECTION: DYNAMIC IMPORT & STRIPE INITIALIZATION
-// ========================================================================
+import QuickLocator from '@/components/QuickLocator';
+import StoryModal from '@/components/StoryModal';
+
 const Map = dynamic(() => import('@/components/Map'), { 
   ssr: false 
 });
 
-// Using your LIVE Publishable Key. For testing, you can swap this with your test key.
 const stripePromise = loadStripe('pk_live_51PWc0EP8TGcYvcnxRvYWWqJj4CU7dDENqzmk5zVfn2uSfF7At1RW7KuNjQCogPQRnBMCy1wEcQPxDRGj3rMk6Kgo00HZs2tuve');
 
-
-// ========================================================================
-// SECTION: HOMEPAGE COMPONENT
-// ========================================================================
 export default function Home() {
-    // ========================================================================
-    // SUB-SECTION: STATE MANAGEMENT (No Duplicates)
-    // ========================================================================
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
     const [isCartPanelOpen, setCartPanelOpen] = useState(false);
     const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -37,28 +29,97 @@ export default function Home() {
     const [clientSecret, setClientSecret] = useState('');
     const [selectedPin, setSelectedPin] = useState(null);
     const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
-    const [viewedProduct, setViewedProduct] = useState(null); // To track the product detail view
+    const [viewedProduct, setViewedProduct] = useState(null);
+    const [isLoading, setIsLoading] = useState(false); // <-- Loading state
 
+    // City-centric state
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [isStoryModalOpen, setStoryModalOpen] = useState(false);
+    const [storyContentUrl, setStoryContentUrl] = useState('');
+    const [viewedCities, setViewedCities] = useState(new Set());
+    const mapRef = useRef(null);
 
     const filterData = {
-      "Artisan": ["Leather"],
       "Adventures": ["Quad Biking", "Camel Rides", "Buggy Tours"],
       "Workshops": ["Cooking Class", "Pottery", "Artisan Crafts"],
       "Food": ["Traditional Food", "Moroccan Sweets", "Cafes"],
       "Monuments": ["Historic Sites", "Gardens", "Museums"]
     };
 
+    const cityData = {
+      'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
+      'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
+      'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
+    };
+
     // ========================================================================
-    // SUB-SECTION: HELPER FUNCTIONS
+    // SUB-SECTION: DATA FETCHING & CITY LOGIC (REVISED)
     // ========================================================================
+    useEffect(() => {
+        // This hook is now ONLY responsible for fetching data and showing the story modal.
+    const fetchCityPins = async () => {
+        if (!selectedCity) {
+            setAllPins([]);
+            setDisplayedPins([]);
+            return;
+        }
+        const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard`;
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('API response was not ok.');
+            const locations = await response.json();
+            const cityPinsData = locations.map(loc => {
+                if (!loc.acf || !loc.acf.gps_coordinates) return null;
+                const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
+                return { id: loc.id, lng, lat, title: loc.title.rendered, description: loc.acf.description || '', featured_image: loc.acf.featured_image?.url || null, subCategory: loc.acf.map_sub_category, category_connector_id: loc.acf.category_connector_id, map_category: loc.acf.map_category?.[0] || null, color: '#007bff' };
+            }).filter(Boolean);
+            setAllPins(cityPinsData);
+            setDisplayedPins(cityPinsData);
+        } catch (error) {
+            console.error(`API fetch failed for ${selectedCity.name}:`, error);
+        }
+    };
+
+    fetchCityPins();
+
+    if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
+        setStoryContentUrl(selectedCity.storyUrl);
+        setStoryModalOpen(true);
+        setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
+    }
+}, [selectedCity]);
+
+
+    const handleCitySelect = (cityKey) => {
+        // This function now ONLY updates the state. The Map.js component handles the rest.
+        setIsLoading(true); // <-- Loading starts
+        setSelectedCity(cityData[cityKey]);
+        // Force loading to stop after 2 seconds
+        setTimeout(() => setIsLoading(false), 2000); 
+
+    };
+    
+    const handleResetView = () => {
+    // This function now ONLY updates the state. Map.js handles the animation.
+    ssetIsLoading(true); // Loading starts
+    setSelectedCity(null);
+    // Force loading to stop after 2 seconds
+    setTimeout(() => setIsLoading(false), 2000);
+};
+
+    // New function to handle animation end
+    const handleAnimationEnd = () => {
+        if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
+            setStoryContentUrl(selectedCity.storyUrl);
+            setStoryModalOpen(true);
+            setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
+        }
+    };
+
+
     const handleFilter = () => {
         const selectedArray = Array.from(selectedSubCategories);
-        if (selectedArray.length === 0) {
-            setDisplayedPins(allPins);
-        } else {
-            const filtered = allPins.filter(pin => selectedArray.includes(pin.subCategory));
-            setDisplayedPins(filtered);
-        }
+        setDisplayedPins(selectedArray.length === 0 ? allPins : allPins.filter(pin => selectedArray.includes(pin.subCategory)));
         setFilterPanelOpen(false);
     };
 
@@ -78,77 +139,53 @@ export default function Home() {
     };
     
     const handleCheckout = async () => {
-        if (cart.length === 0) {
-            alert('Your cart is empty.');
-            return;
-        }
+        if (cart.length === 0) return alert('Your cart is empty.');
         setCartPanelOpen(false);
-        const totalAmountInCents = 1999; // Placeholder price
-
         try {
             const res = await fetch('/api/create-payment-intent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: totalAmountInCents }),
+                body: JSON.stringify({ amount: 1999 }),
             });
             const data = await res.json();
-            
             if (data.clientSecret) {
                 setClientSecret(data.clientSecret);
                 setCheckoutModalOpen(true);
             } else {
-                alert('Could not start checkout. Please try again.');
+                alert('Could not start checkout.');
             }
         } catch (error) {
-            console.error("Failed to create payment intent:", error);
-            alert('Could not connect to the payment server.');
+            console.error("Payment intent error:", error);
+            alert('Could not connect to payment server.');
         }
     };
     
     const onPaymentSuccess = () => {
         setTimeout(() => {
-            alert('Payment confirmed! Thank you.');
+            alert('Payment confirmed!');
             setCheckoutModalOpen(false);
             setClientSecret('');
             setCart([]);
         }, 1000);
     };
-    // ========================================================================
-    // This hook fetches products when a pin's modal is opened
-    // ========================================================================
+    
     useEffect(() => {
-        // When the modal closes, reset the viewed product
         if (!selectedPin) {
             setViewedProduct(null);
             return;
         }
-
         if (selectedPin.category_connector_id || selectedPin.connector_id) {
             const fetchProducts = async () => {
                 setModalProducts({ status: 'loading', data: [] });
-
                 const wooApiUrl = selectedPin.category_connector_id
                     ? `https://www.hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
                     : `https://www.hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
-
-                const consumerKey = 'ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e';
-                const consumerSecret = 'cs_9b522ebc8221748dad57255f1dc9c8eec5ec1b1d';
-                const authString = btoa(`${consumerKey}:${consumerSecret}`);
-
+                const authString = btoa(`ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e:cs_9b522ebc8221748dad57255f1dc9c8eec5ec1b1d`);
                 try {
-                    const response = await fetch(wooApiUrl, {
-                        headers: { 'Authorization': `Basic ${authString}` }
-                    });
+                    const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
                     if (!response.ok) throw new Error('WooCommerce API response not ok');
-                    
-                    // Use 'let' instead of 'const' to allow reassignment
                     let products = await response.json();
-                    
-                    // Normalize the result into an array if it's a single object
-                    if (!Array.isArray(products)) {
-                        products = [products];
-                    }
-
+                    if (!Array.isArray(products)) products = [products];
                     setModalProducts({ status: 'success', data: products });
                 } catch (error) {
                     console.error("Failed to fetch WooCommerce products:", error);
@@ -159,31 +196,28 @@ export default function Home() {
         } else {
             setModalProducts({ status: 'idle', data: [] });
         }
-    }, [selectedPin]); // This hook runs every time `selectedPin` changes
+    }, [selectedPin]);
 
-
-    // ========================================================================
-    // SUB-SECTION: RENDER
-    // ========================================================================
     return (
       <main className={styles.mainContainer}>
-        <Map 
-          allPins={allPins}
-          setAllPins={setAllPins}
-          displayedPins={displayedPins}
-          setDisplayedPins={setDisplayedPins}
-          onAddToCart={handleAddToCart}
-          onPinClick={setSelectedPin}
-        />
 
-        {/* --- UI Elements --- */}
+        <Map 
+            mapRef={mapRef}
+            displayedPins={displayedPins}
+            onPinClick={setSelectedPin}
+            selectedCity={selectedCity}
+            onTransitionEnd={() => setIsLoading(false)} // <-- off loading when transition ends
+            onAnimationEnd={handleAnimationEnd} // <-- ADD THIS PROP
+            onStyleLoad={() => setIsLoading(false)} // <-- off loading when style loads
+
+        />
+        <QuickLocator cities={cityData} onCitySelect={handleCitySelect} onResetView={handleResetView} />
+        {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
         <button onClick={() => setFilterPanelOpen(true)} className={styles.openFilterBtn}>🔍 Filter Pins</button>
         <button onClick={() => setCartPanelOpen(true)} className={styles.cartIcon}>
             🛒
             {cart.length > 0 && <span className={styles.cartCount}>{cart.length}</span>}
         </button>
-        
-        {/* --- Filter Panel --- */}
         <div className={`${styles.panel} ${styles.filterPanel} ${isFilterPanelOpen ? styles.open : ''}`}>
             <div className={styles.panelHeader}>
               <h2>Filter Pins</h2>
@@ -215,8 +249,6 @@ export default function Home() {
                 <button onClick={handleFilter} className={styles.panelBtn} style={{background: '#007bff'}}>View Pins</button>
             </div>
         </div>
-
-        {/* --- Cart Panel --- */}
         <div className={`${styles.panel} ${styles.cartPanel} ${isCartPanelOpen ? styles.open : ''}`}>
             <div className={styles.panelHeader}>
                 <h2>Your Itinerary</h2>
@@ -235,8 +267,6 @@ export default function Home() {
               </div>
             )}
         </div>
-
-        {/* --- Checkout Modal --- */}
         {isCheckoutModalOpen && clientSecret && (
             <div className={styles.checkoutModal}>
                 <div className={styles.checkoutFormContainer}>
@@ -250,14 +280,10 @@ export default function Home() {
                 </div>
             </div>
         )}
-
-        {/* --- Full-Screen Pin Detail Modal --- */}
         {selectedPin && (
           <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
               <button className={styles.modalCloseBtn} onClick={() => setSelectedPin(null)}>&times;</button>
-              
-              {/* This now conditionally renders the Product Detail or the Location Info */}
               {viewedProduct ? (
                 <ProductDetail 
                     product={viewedProduct}
@@ -270,8 +296,6 @@ export default function Home() {
                   <div className={styles.modalTextContent}>
                     <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
                     <p className={styles.popupCategory}>{selectedPin.description}</p>
-                    
-                    {/* Product Carousel Logic */}
                     <div className="product-carousel-container" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                         {modalProducts.status === 'loading' && <p>Loading products...</p>}
                         {modalProducts.status === 'error' && <p>Could not load products.</p>}

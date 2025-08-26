@@ -1,116 +1,115 @@
 'use client';
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import styles from '@/app/page.module.css';
-import ReactDOM from 'react-dom/client';
-import ProductDetail from './ProductDetail';
 
-// ========================================================================
-// SECTION: MAPBOX CONFIGURATION
-// ========================================================================
+// CORRECTED: Removed the duplicate, incorrect line
+mapboxgl.workerUrl = "/mapbox-gl-csp-worker.js";
 mapboxgl.accessToken = 'pk.eyJ1IjoiaHlyb3N5IiwiYSI6ImNtZW84aHIyMzFjNXEybXNlZzN0c294N3oifQ.xSS6R2U0ClqqtR9Tfxmntw';
 
-// ========================================================================
-// SECTION: THE MAP COMPONENT
-// ========================================================================
-const Map = ({ allPins, setAllPins, displayedPins, setDisplayedPins, onAddToCart, onPinClick }) => {
+const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd  }) => {
     const mapContainer = useRef(null);
-    const map = useRef(null);
     const markersRef = useRef([]);
+    const lightingIntervalRef = useRef(null);
 
-    // ========================================================================
-    // SUB-SECTION: DATA FETCHING FUNCTION
-    // ========================================================================
-    const fetchLocations = useCallback(async () => {
-        const apiUrl = 'https://data.hyrosy.com/wp-json/wp/v2/locations?acf_format=standard';
-        try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('API response was not ok.');
-            const locations = await response.json();
-           
-            const livePinsData = locations.map(loc => {
-                if (!loc.acf || !loc.acf.gps_coordinates) return null;
-                const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
-                const imageUrl = loc.acf.featured_image ? loc.acf.featured_image.url : null;
-                const description = loc.acf.description || '';
-                return {
-                    id: loc.id,
-                    lng, lat,
-                    title: loc.title.rendered,
-                    description: description,
-                    featured_image: imageUrl,
-                    subCategory: loc.acf.map_sub_category,
-                    category_connector_id: loc.acf.category_connector_id,
-                    map_category: loc.acf.map_category ? loc.acf.map_category[0] : null,
-                    color: '#007bff'
-                };
-            }).filter(Boolean);
-           
-            console.log('SUCCESS: Fetched', livePinsData.length, 'live pins from WordPress.');
-            setAllPins(livePinsData);
-            setDisplayedPins(livePinsData);
-        } catch (error) {
-            console.error('API fetch failed:', error);
+    const getLightingConfig = () => {
+        const now = new Date();
+        const moroccoHour = now.getUTCHours() + 1 + now.getMinutes() / 60;
+        if (moroccoHour > 7 && moroccoHour < 19) { // Daytime
+            const progress = (moroccoHour - 7) / 12;
+            const sunAzimuth = 180 + progress * 180;
+            const sunAltitude = Math.sin(progress * Math.PI) * 70;
+            return { ambientIntensity: 0.6, directionalIntensity: 0.6, sunPosition: [1, sunAzimuth, sunAltitude] };
         }
-    }, [setAllPins, setDisplayedPins]); // Add dependencies here
+        return { ambientIntensity: 0.1, directionalIntensity: 0.2, sunPosition: [1, 240, 20] }; // Nighttime
+    };
 
-    // ========================================================================
-    // SUB-SECTION: PIN DISPLAY LOGIC
-    // ========================================================================
     useEffect(() => {
-        if (!map.current || !displayedPins) return;
-       
-        markersRef.current.forEach(marker => marker.remove());
-        markersRef.current = [];
-
-        displayedPins.forEach(pin => {
-            const markerEl = document.createElement('div');
-            markerEl.style.width = '20px';
-            markerEl.style.height = '20px';
-            markerEl.style.backgroundColor = pin.color || '#007bff';
-            markerEl.style.borderRadius = '50%';
-            markerEl.style.border = '2px solid white';
-            markerEl.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-            markerEl.style.cursor = 'pointer';
-
-            markerEl.addEventListener('click', () => {
-                onPinClick(pin);
-            });
-
-            const marker = new mapboxgl.Marker(markerEl)
-                .setLngLat([pin.lng, pin.lat])
-                .addTo(map.current);
-           
-            markersRef.current.push(marker);
-        });
-    }, [displayedPins, onPinClick]);
-
-    // ========================================================================
-    // SUB-SECTION: MAP INITIALIZATION & LIFECYCLE
-    // ========================================================================
-    useEffect(() => {
-        if (map.current) return;
-        map.current = new mapboxgl.Map({
+        if (mapRef.current) return;
+        const map = new mapboxgl.Map({
             container: mapContainer.current,
             style: 'mapbox://styles/mapbox/light-v11',
-            center: [-7.98, 31.63],
-            zoom: 14,
-            pitch: 60,
-            bearing: -10
+            center: [-5.4, 32.2], zoom: 5.5, pitch: 0,
+            maxBounds: [[-18, 27], [-1, 36]]
         });
-        map.current.on('load', () => {
-            map.current.addSource('mapbox-dem', {'type': 'raster-dem','url': 'mapbox://mapbox.terrain-rgb'});
-            map.current.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-            map.current.addLayer({'id': 'add-3d-buildings','source': 'composite','source-layer': 'building','filter': ['==', 'extrude', 'true'],'type': 'fill-extrusion','minzoom': 15,'paint': {'fill-extrusion-color': '#aaa','fill-extrusion-height': ['get', 'height'],'fill-extrusion-base': ['get', 'min_height'],'fill-extrusion-opacity': 0.6}});
-            fetchLocations();
-        });
-    }, [fetchLocations]); // The dependency is now correctly added here
+        mapRef.current = map;
+        return () => { if (lightingIntervalRef.current) clearInterval(lightingIntervalRef.current); };
+    }, [mapRef]);
 
-    return (
-        <div ref={mapContainer} className={styles.mapContainer} />
-    );
+    // ========================================================================
+    // SUB-SECTION: STYLE, 3D, POIs, AND CAMERA ANIMATION (REVISED)
+    // ========================================================================
+    useEffect(() => {
+        if (!mapRef.current) return;
+        const map = mapRef.current;
+        
+        if (lightingIntervalRef.current) clearInterval(lightingIntervalRef.current);
+
+        const setupCityViewAndFly = () => {
+            const lighting = getLightingConfig();
+            map.setLights({
+                'ambient': { 'intensity': lighting.ambientIntensity, 'color': 'white' },
+                'directional': { 'intensity': lighting.directionalIntensity, 'cast-shadows': true, 'position': lighting.sunPosition }
+            });
+            map.setFog({});
+            if (!map.getSource('mapbox-dem')) {
+                map.addSource('mapbox-dem', { 'type': 'raster-dem', 'url': 'mapbox://mapbox.terrain-rgb' });
+            }
+            map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+
+            if (!map.getLayer('3d-buildings')) {
+                map.addLayer({
+                    'id': '3d-buildings', 'source': 'composite', 'source-layer': 'building', 'filter': ['==', 'extrude', 'true'], 'type': 'fill-extrusion', 'minzoom': 15,
+                    'paint': { 'fill-extrusion-color': '#d1d1d1', 'fill-extrusion-height': ['get', 'height'], 'fill-extrusion-opacity': 0.7 }
+                });
+            }
+            
+            // **THE FIX:** The camera animation is now correctly placed inside this callback.
+            map.flyTo({ center: selectedCity.center, zoom: 15, pitch: 75, bearing: -17.6, essential: true, speed: 1.2 });
+            map.once('moveend', onAnimationEnd);
+
+            lightingIntervalRef.current = setInterval(() => {
+                const newLighting = getLightingConfig();
+                map.setLights({
+                    'ambient': { 'intensity': newLighting.ambientIntensity, 'color': 'white' },
+                    'directional': { 'intensity': newLighting.directionalIntensity, 'cast-shadows': true, 'position': newLighting.sunPosition }
+                });
+            }, 60000);
+        };
+
+        if (selectedCity) {
+                    // When a city is selected, it loads your 3D style
+            map.setStyle('mapbox://styles/hyrosy/cmet0cvjx00db01qwc2gfet91');
+            map.once('style.load', setupCityViewAndFly);
+        } else {
+                    // When you reset, it loads your 2D style
+            map.setStyle('mapbox://styles/mapbox/light-v11');
+            map.once('style.load', () => {
+                map.setFog({});
+                if (map.getSource('mapbox-dem')) map.setTerrain(null);
+                map.flyTo({ center: [-5.4, 32.2], zoom: 5.5, pitch: 75, bearing: 0 });
+                // **FIX:** Ensure the callback is also here for the reset view
+                map.once('moveend', onAnimationEnd);
+            });
+        }
+    }, [selectedCity, mapRef, onAnimationEnd]);
+    
+    useEffect(() => {
+        if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
+        markersRef.current.forEach(marker => marker.remove());
+        markersRef.current = [];
+        displayedPins.forEach(pin => {
+            const markerEl = document.createElement('div');
+            markerEl.style.cssText = 'width: 20px; height: 20px; background-color: #007bff; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); cursor: pointer;';
+            markerEl.addEventListener('click', () => onPinClick(pin));
+            const marker = new mapboxgl.Marker(markerEl).setLngLat([pin.lng, pin.lat]).addTo(mapRef.current);
+            markersRef.current.push(marker);
+        });
+    }, [displayedPins]);
+
+    return <div ref={mapContainer} className={styles.mapContainer} />;
 };
 
 export default Map;
