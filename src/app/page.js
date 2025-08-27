@@ -18,6 +18,18 @@ const Map = dynamic(() => import('@/components/Map'), {
 const stripePromise = loadStripe('pk_live_51PWc0EP8TGcYvcnxRvYWWqJj4CU7dDENqzmk5zVfn2uSfF7At1RW7KuNjQCogPQRnBMCy1wEcQPxDRGj3rMk6Kgo00HZs2tuve');
 
 export default function Home() {
+    const filterData = {
+      "Adventures": ["Quad Biking", "Camel Rides", "Buggy Tours"],
+      "Workshops": ["Cooking Class", "Pottery", "Artisan Crafts"],
+      "Food": ["Traditional Food", "Moroccan Sweets", "Cafes"],
+      "Monuments": ["Historic Sites", "Gardens", "Museums"]
+    };
+
+    const cityData = {
+      'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
+      'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
+      'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
+    };
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
     const [isCartPanelOpen, setCartPanelOpen] = useState(false);
     const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -34,24 +46,13 @@ export default function Home() {
     const [isLocatorOpen, setLocatorOpen] = useState(false); // New state for Quick Locator panel
 
     // City-centric state
-    const [selectedCity, setSelectedCity] = useState(null);
+    const [selectedCity, setSelectedCity] = useState(cityData['marrakech']); // Default to Marrakech
     const [isStoryModalOpen, setStoryModalOpen] = useState(false);
     const [storyContentUrl, setStoryContentUrl] = useState('');
     const [viewedCities, setViewedCities] = useState(new Set());
     const mapRef = useRef(null);
 
-    const filterData = {
-      "Adventures": ["Quad Biking", "Camel Rides", "Buggy Tours"],
-      "Workshops": ["Cooking Class", "Pottery", "Artisan Crafts"],
-      "Food": ["Traditional Food", "Moroccan Sweets", "Cafes"],
-      "Monuments": ["Historic Sites", "Gardens", "Museums"]
-    };
 
-    const cityData = {
-      'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
-      'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
-      'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
-    };
 
     // ========================================================================
     // SUB-SECTION: DATA FETCHING & CITY LOGIC (REVISED)
@@ -99,6 +100,13 @@ export default function Home() {
         setTimeout(() => setIsLoading(false), 2000); 
 
     };
+
+    const handlePlayTeaser = (url) => {
+        setStoryContentUrl(url);
+        setStoryModalOpen(true);
+    };
+
+    
     
     const handleResetView = () => {
     // This function now ONLY updates the state. Map.js handles the animation.
@@ -212,10 +220,12 @@ export default function Home() {
             displayedPins={displayedPins}
             onPinClick={setSelectedPin}
             selectedCity={selectedCity}
-            onTransitionEnd={() => setIsLoading(false)} // <-- off loading when transition ends
-            onAnimationEnd={handleAnimationEnd} // <-- ADD THIS PROP
-            onStyleLoad={() => setIsLoading(false)} // <-- off loading when style loads
 
+        />
+        <QuickLocator 
+            cities={cityData} 
+            onCitySelect={handleCitySelect} 
+            onPlayTeaser={handlePlayTeaser} // New prop
         />
         {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
 

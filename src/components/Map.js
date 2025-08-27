@@ -30,7 +30,7 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd  
         if (mapRef.current) return;
         const map = new mapboxgl.Map({
             container: mapContainer.current,
-            style: 'mapbox://styles/mapbox/light-v11',
+            style: 'mapbox://styles/hyrosy/cmet0cvjx00db01qwc2gfet91',
             center: [-5.4, 32.2], zoom: 5.5, pitch: 0,
             maxBounds: [[-18, 27], [-1, 36]]
         });
@@ -59,12 +59,6 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd  
             }
             map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
 
-            if (!map.getLayer('3d-buildings')) {
-                map.addLayer({
-                    'id': '3d-buildings', 'source': 'composite', 'source-layer': 'building', 'filter': ['==', 'extrude', 'true'], 'type': 'fill-extrusion', 'minzoom': 15,
-                    'paint': { 'fill-extrusion-color': '#d1d1d1', 'fill-extrusion-height': ['get', 'height'], 'fill-extrusion-opacity': 0.7 }
-                });
-            }
             
             // **THE FIX:** The camera animation is now correctly placed inside this callback.
             map.flyTo({ center: selectedCity.center, zoom: 15, pitch: 75, bearing: -17.6, essential: true, speed: 1.2 });
@@ -80,21 +74,16 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd  
         };
 
         if (selectedCity) {
-                    // When a city is selected, it loads your 3D style
-            map.setStyle('mapbox://styles/hyrosy/cmet0cvjx00db01qwc2gfet91');
-            map.once('style.load', setupCityViewAndFly);
-        } else {
-                    // When you reset, it loads your 2D style
-            map.setStyle('mapbox://styles/mapbox/light-v11');
-            map.once('style.load', () => {
-                map.setFog({});
-                if (map.getSource('mapbox-dem')) map.setTerrain(null);
-                map.flyTo({ center: [-5.4, 32.2], zoom: 5.5, pitch: 75, bearing: 0 });
-                // **FIX:** Ensure the callback is also here for the reset view
-                map.once('moveend', onAnimationEnd);
-            });
-        }
-    }, [selectedCity, mapRef, onAnimationEnd]);
+        map.flyTo({
+            center: selectedCity.center,
+            zoom: 15,
+            pitch: 75,
+            bearing: -17.6,
+            speed: 1.2,
+            essential: true
+        });
+    }
+}, [selectedCity, mapRef]);
     
     useEffect(() => {
         if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
