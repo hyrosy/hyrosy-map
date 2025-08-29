@@ -1,6 +1,10 @@
 // next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    
+    experimental: {
+    turbo: false, // 👈 disable Turbopack and use Webpack (stable)
+  },
     images: {
         remotePatterns: [
             {
