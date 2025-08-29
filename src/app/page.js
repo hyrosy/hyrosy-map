@@ -222,11 +222,7 @@ export default function Home() {
             selectedCity={selectedCity}
 
         />
-        <QuickLocator 
-            cities={cityData} 
-            onCitySelect={handleCitySelect} 
-            onPlayTeaser={handlePlayTeaser} // New prop
-        />
+        
         {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
 
         {/* --- THIS IS THE NEW QUICK LOCATOR LOGIC --- */}
