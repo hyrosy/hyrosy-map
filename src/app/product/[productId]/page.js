@@ -2,14 +2,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation'; // Hook to get URL parameters
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import styles from './product-page.module.css'; // We will create this file next
+import Link from 'next/link'; // <-- Import Link
+import styles from './product-page.module.css';
 
 export default function ProductPage() {
     const [product, setProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { productId } = useParams(); // Get the ID from the URL, e.g., "200"
+    const { productId } = useParams();
 
     useEffect(() => {
         if (!productId) return;
@@ -45,29 +46,38 @@ export default function ProductPage() {
 
     const imageUrl = product.images?.[0]?.src || '/placeholder.png';
 
+    // Wrap your page in a React Fragment <> ... </>
     return (
-        <div className={styles.pageContainer}>
-            <div className={styles.imageColumn}>
-                 <Image
-                    src={imageUrl}
-                    alt={product.name || 'Product Image'}
-                    fill
-                    className={styles.productImage}
-                    sizes="50vw"
-                />
-            </div>
-            <div className={styles.detailsColumn}>
-                <h1 className={styles.productName}>{product.name}</h1>
-                <div 
-                    className={styles.productDescription} 
-                    dangerouslySetInnerHTML={{ __html: product.description }} 
-                />
-                <p className={styles.productPrice}>{product.price} €</p>
-                <div className={styles.actions}>
-                    {/* Add quantity selector here later */}
-                    <button className={styles.addToCartButton}>Add to Cart</button>
+        <>
+            {/* Add this header section */}
+            <header className={styles.header}>
+                <Link href="/store" className={styles.backLink}>
+                    &larr; Back to Store
+                </Link>
+            </header>
+
+            <div className={styles.pageContainer}>
+                <div className={styles.imageColumn}>
+                     <Image
+                        src={imageUrl}
+                        alt={product.name || 'Product Image'}
+                        fill
+                        className={styles.productImage}
+                        sizes="50vw"
+                    />
+                </div>
+                <div className={styles.detailsColumn}>
+                    <h1 className={styles.productName}>{product.name}</h1>
+                    <div 
+                        className={styles.productDescription} 
+                        dangerouslySetInnerHTML={{ __html: product.description }} 
+                    />
+                    <p className={styles.productPrice}>{product.price} €</p>
+                    <div className={styles.actions}>
+                        <button className={styles.addToCartButton}>Add to Cart</button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
