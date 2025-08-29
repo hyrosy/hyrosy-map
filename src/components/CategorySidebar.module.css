@@ -1,0 +1,42 @@
+/* src/components/CategorySidebar.module.css */
+.sidebar {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1.5rem;
+  color: #1a1a1a;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 15px;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.categoryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.categoryList li {
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #555;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.categoryList li:hover {
+  background-color: #f0f0f0;
+  color: #000;
+}
+
+.categoryList li.active {
+  background-color: #007bff;
+  color: white;
+}
