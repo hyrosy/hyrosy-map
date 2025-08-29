@@ -1,36 +1,35 @@
-// src/components/ProductCard.js
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import styles from './ProductCard.module.css';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-const ProductCard = ({ product, onAddToCart }) => {
-  // Use a placeholder image if the product doesn't have one
-  const imageUrl = product.images?.[0]?.src || '/placeholder.png';
+const ProductCard = ({ product }) => {
+  const imageUrl = product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.png';
 
   return (
-    <div className={styles.cardWrapper}>
-      <Link href={`/product/${product.id}`} className={styles.cardLink}>
-        <div className={styles.imageContainer}>
-          <Image
-            src={imageUrl}
-            alt={product.name || 'Product Image'}
-            fill
-            className={styles.productImage}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        </div>
-        <div className={styles.productInfo}>
-          <h3 className={styles.productName}>{product.name}</h3>
-          <p className={styles.productPrice}>{product.price} €</p>
-        </div>
-      </Link>
-      <button onClick={() => onAddToCart(product)} className={styles.addToCartButton}>
-        Add to Cart
-      </button>
-    </div>
+    <Link href={`/product/${product.id}`} className="group">
+        <Card className="h-full flex flex-col overflow-hidden transition-shadow hover:shadow-lg">
+            <CardHeader className="p-0">
+                <div className="relative w-full aspect-square bg-gray-100">
+                    <Image
+                        src={imageUrl}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                </div>
+            </CardHeader>
+            <CardContent className="p-4 flex-grow">
+                <CardTitle className="text-lg font-semibold leading-snug">{product.name}</CardTitle>
+            </CardContent>
+            <CardFooter className="p-4 pt-0">
+                <p className="text-md font-medium text-gray-700">${product.price}</p>
+            </CardFooter>
+        </Card>
+    </Link>
   );
 };
 
