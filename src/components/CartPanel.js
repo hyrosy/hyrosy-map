@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Trash2 } from "lucide-react"; // A popular icon library
 import { loadStripe } from '@stripe/stripe-js'; 
+import { Elements } from '@stripe/react-stripe-js'; // <-- ADD THIS
+import CheckoutForm from './CheckoutForm';           // <-- ADD THIS
+
+
+
 // Load Stripe outside of the component to avoid re-creating on every render
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
