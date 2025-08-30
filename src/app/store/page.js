@@ -21,8 +21,8 @@ export default function StorePage() {
             try {
                 // Fetch products and categories in parallel
                 const [productsRes, categoriesRes] = await Promise.all([
-                    fetch('https://www.hyrosy.com/wp-json/wc/v3/products', { headers }),
-                    fetch('https://www.hyrosy.com/wp-json/wc/v3/products/categories', { headers })
+                    fetch('https://data.hyrosy.com/wp-json/wc/v3/products', { headers }),
+                    fetch('https://data.hyrosy.com/wp-json/wc/v3/products/categories', { headers })
                 ]);
 
                 if (!productsRes.ok || !categoriesRes.ok) {

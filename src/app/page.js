@@ -130,7 +130,7 @@ export default function Home() {
                 const wooApiUrl = selectedPin.category_connector_id
                     ? `https://www.hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
                     : `https://www.hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
-                const authString = btoa(`ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e`);
+                const authString = btoa(`ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e:cs_9b522ebc8221748dad57255f1dc9c8eec5ec1b1d`);
                 try {
                     const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
                     if (!response.ok) throw new Error('WooCommerce API response not ok');
