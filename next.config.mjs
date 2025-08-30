@@ -3,7 +3,6 @@
 const nextConfig = {
     
     experimental: {
-    turbo: false, // 👈 disable Turbopack and use Webpack (stable)
   },
     images: {
         remotePatterns: [

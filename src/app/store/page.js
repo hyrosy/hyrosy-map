@@ -34,6 +34,7 @@ export default function StorePage() {
 
                 setProducts(productsData);
                 // Filter out the "Uncategorized" category
+                const validCategories = Array.isArray(categoriesData) ? categoriesData : [];
                 setCategories(categoriesData.filter(cat => cat.slug !== 'uncategorized'));
             } catch (error) {
                 console.error("Failed to fetch store data:", error);

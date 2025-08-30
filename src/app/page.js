@@ -10,6 +10,7 @@ import ProductDetail from '@/components/ProductDetail';
 import Image from 'next/image';
 import QuickLocator from '@/components/QuickLocator';
 import StoryModal from '@/components/StoryModal';
+import { useCart } from "@/context/CartContext";
 
 const Map = dynamic(() => import('@/components/Map'), { 
   ssr: false 
@@ -30,101 +31,78 @@ export default function Home() {
       'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
       'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
     };
+    
+    // --- (1) REMOVED OLD CART STATE ---
+    // const [isCartPanelOpen, setCartPanelOpen] = useState(false);
+    // const [cart, setCart] = useState([]);
+    
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
-    const [isCartPanelOpen, setCartPanelOpen] = useState(false);
     const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
     const [allPins, setAllPins] = useState([]);
     const [displayedPins, setDisplayedPins] = useState([]);
     const [activeMainCategory, setActiveMainCategory] = useState("Adventures");
     const [selectedSubCategories, setSelectedSubCategories] = useState(new Set());
-    const [cart, setCart] = useState([]);
     const [clientSecret, setClientSecret] = useState('');
     const [selectedPin, setSelectedPin] = useState(null);
     const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
     const [viewedProduct, setViewedProduct] = useState(null);
-    const [isLoading, setIsLoading] = useState(false); // <-- Loading state
-    const [isLocatorOpen, setLocatorOpen] = useState(false); // New state for Quick Locator panel
-
-    // City-centric state
-    const [selectedCity, setSelectedCity] = useState(cityData['marrakech']); // Default to Marrakech
+    const [isLoading, setIsLoading] = useState(false);
+    const [isLocatorOpen, setLocatorOpen] = useState(false);
+    const [selectedCity, setSelectedCity] = useState(cityData['marrakech']);
     const [isStoryModalOpen, setStoryModalOpen] = useState(false);
     const [storyContentUrl, setStoryContentUrl] = useState('');
     const [viewedCities, setViewedCities] = useState(new Set());
     const mapRef = useRef(null);
 
+    // --- (2) USE THE GLOBAL CART CONTEXT ---
+    const { addToCart } = useCart();
 
-
-    // ========================================================================
-    // SUB-SECTION: DATA FETCHING & CITY LOGIC (REVISED)
-    // ========================================================================
+    // All your useEffect and handler functions for filters, cities, etc., remain the same...
+    // ... (useEffect for fetching pins) ...
+    // ... (handleCitySelect, handleFilter, etc.) ...
+    
     useEffect(() => {
-        // This hook is now ONLY responsible for fetching data and showing the story modal.
-    const fetchCityPins = async () => {
-        if (!selectedCity) {
-            setAllPins([]);
-            setDisplayedPins([]);
-            return;
-        }
-        const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard`;
-        try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('API response was not ok.');
-            const locations = await response.json();
-            const cityPinsData = locations.map(loc => {
-                if (!loc.acf || !loc.acf.gps_coordinates) return null;
-                const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
-                return { id: loc.id, lng, lat, title: loc.title.rendered, description: loc.acf.description || '', featured_image: loc.acf.featured_image?.url || null, subCategory: loc.acf.map_sub_category, category_connector_id: loc.acf.category_connector_id, map_category: loc.acf.map_category?.[0] || null, color: '#007bff' };
-            }).filter(Boolean);
-            setAllPins(cityPinsData);
-            setDisplayedPins(cityPinsData);
-        } catch (error) {
-            console.error(`API fetch failed for ${selectedCity.name}:`, error);
-        }
-    };
-
-    fetchCityPins();
-
-    if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
-        setStoryContentUrl(selectedCity.storyUrl);
-        setStoryModalOpen(true);
-        setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
-    }
-}, [selectedCity]);
-
-
-    const handleCitySelect = (cityKey) => {
-        // This function now ONLY updates the state. The Map.js component handles the rest.
-        setIsLoading(true); // <-- Loading starts
-        setSelectedCity(cityData[cityKey]);
-        // Force loading to stop after 2 seconds
-        setTimeout(() => setIsLoading(false), 2000); 
-
-    };
-
-    const handlePlayTeaser = (url) => {
-        setStoryContentUrl(url);
-        setStoryModalOpen(true);
-    };
-
-    
-    
-    const handleResetView = () => {
-    // This function now ONLY updates the state. Map.js handles the animation.
-    ssetIsLoading(true); // Loading starts
-    setSelectedCity(null);
-    // Force loading to stop after 2 seconds
-    setTimeout(() => setIsLoading(false), 2000);
-};
-
-    // New function to handle animation end
-    const handleAnimationEnd = () => {
+        const fetchCityPins = async () => {
+            if (!selectedCity) {
+                setAllPins([]);
+                setDisplayedPins([]);
+                return;
+            }
+            const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('API response was not ok.');
+                const locations = await response.json();
+                const cityPinsData = locations.map(loc => {
+                    if (!loc.acf || !loc.acf.gps_coordinates) return null;
+                    const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
+                    return { id: loc.id, lng, lat, title: loc.title.rendered, description: loc.acf.description || '', featured_image: loc.acf.featured_image?.url || null, subCategory: loc.acf.map_sub_category, category_connector_id: loc.acf.category_connector_id, map_category: loc.acf.map_category?.[0] || null, color: '#007bff' };
+                }).filter(Boolean);
+                setAllPins(cityPinsData);
+                setDisplayedPins(cityPinsData);
+            } catch (error) {
+                console.error(`API fetch failed for ${selectedCity.name}:`, error);
+            }
+        };
+        fetchCityPins();
         if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
             setStoryContentUrl(selectedCity.storyUrl);
             setStoryModalOpen(true);
             setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
         }
-    };
+    }, [selectedCity, viewedCities]);
 
+    const handleCitySelect = (cityKey) => {
+        setIsLoading(true);
+        setSelectedCity(cityData[cityKey]);
+        setTimeout(() => setIsLoading(false), 2000); 
+    };
+    
+    const handleResetView = () => {
+        setIsLoading(true); 
+        setSelectedCity(null);
+        setTimeout(() => setIsLoading(false), 2000);
+    };
 
     const handleFilter = () => {
         const selectedArray = Array.from(selectedSubCategories);
@@ -136,48 +114,11 @@ export default function Home() {
         setSelectedSubCategories(new Set());
         setDisplayedPins(allPins);
     };
+    
+    // --- (3) REMOVED OLD LOCAL CHECKOUT LOGIC ---
+    // The checkout logic is now handled inside the global CartPanel component.
+    // We can remove handleCheckout and onPaymentSuccess from this page.
 
-    const handleAddToCart = (pinToAdd) => {
-      setCart(prevCart => {
-          if (prevCart.find(item => item.id === pinToAdd.id)) {
-              alert('Item is already in your cart.');
-              return prevCart;
-          }
-          return [...prevCart, pinToAdd];
-      });
-    };
-    
-    const handleCheckout = async () => {
-        if (cart.length === 0) return alert('Your cart is empty.');
-        setCartPanelOpen(false);
-        try {
-            const res = await fetch('/api/create-payment-intent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: 1999 }),
-            });
-            const data = await res.json();
-            if (data.clientSecret) {
-                setClientSecret(data.clientSecret);
-                setCheckoutModalOpen(true);
-            } else {
-                alert('Could not start checkout.');
-            }
-        } catch (error) {
-            console.error("Payment intent error:", error);
-            alert('Could not connect to payment server.');
-        }
-    };
-    
-    const onPaymentSuccess = () => {
-        setTimeout(() => {
-            alert('Payment confirmed!');
-            setCheckoutModalOpen(false);
-            setClientSecret('');
-            setCart([]);
-        }, 1000);
-    };
-    
     useEffect(() => {
         if (!selectedPin) {
             setViewedProduct(null);
@@ -220,12 +161,10 @@ export default function Home() {
             displayedPins={displayedPins}
             onPinClick={setSelectedPin}
             selectedCity={selectedCity}
-
         />
         
         {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
 
-        {/* --- THIS IS THE NEW QUICK LOCATOR LOGIC --- */}
         <button 
             className={styles.locatorIcon} 
             onClick={() => setLocatorOpen(true)}
@@ -243,21 +182,24 @@ export default function Home() {
                     cities={cityData} 
                     onCitySelect={(cityKey) => {
                         handleCitySelect(cityKey);
-                        setLocatorOpen(false); // Close panel on selection
+                        setLocatorOpen(false);
                     }} 
                     onResetView={() => {
                         handleResetView();
-                        setLocatorOpen(false); // Close panel on selection
+                        setLocatorOpen(false);
                     }} 
                 />
             </>
         )}
         <button onClick={() => setFilterPanelOpen(true)} className={styles.openFilterBtn}>🔍 Filter Pins</button>
-        <button onClick={() => setCartPanelOpen(true)} className={styles.cartIcon}>
-            🛒
-            {cart.length > 0 && <span className={styles.cartCount}>{cart.length}</span>}
-        </button>
+        
+        {/* --- (4) REMOVED OLD CART BUTTON ---
+            The cart button is now in the global Header component.
+            We can delete the old button here.
+        --- */}
+
         <div className={`${styles.panel} ${styles.filterPanel} ${isFilterPanelOpen ? styles.open : ''}`}>
+            {/* The entire filter panel JSX remains unchanged... */}
             <div className={styles.panelHeader}>
               <h2>Filter Pins</h2>
               <button onClick={() => setFilterPanelOpen(false)} className={styles.closeBtn}>&times;</button>
@@ -288,24 +230,12 @@ export default function Home() {
                 <button onClick={handleFilter} className={styles.panelBtn} style={{background: '#007bff'}}>View Pins</button>
             </div>
         </div>
-        <div className={`${styles.panel} ${styles.cartPanel} ${isCartPanelOpen ? styles.open : ''}`}>
-            <div className={styles.panelHeader}>
-                <h2>Your Itinerary</h2>
-                <button onClick={() => setCartPanelOpen(false)} className={styles.closeBtn}>&times;</button>
-            </div>
-            <div id="cart-items" style={{flexGrow: 1, overflowY: 'auto'}}>
-                {cart.length === 0 ? <p>Your cart is empty.</p> :
-                    cart.map(item => <div key={item.id} style={{padding: '5px 0'}}>- {item.title}</div>)
-                }
-            </div>
-            {cart.length > 0 && (
-              <div className={styles.panelFooter}>
-                  <button onClick={handleCheckout} className={styles.panelBtn} style={{width: '100%', background: '#28a745'}}>
-                      Proceed to Checkout
-                  </button>
-              </div>
-            )}
-        </div>
+
+        {/* --- (5) REMOVED OLD CART PANEL ---
+            This is now handled by the global CartPanel component in layout.js.
+        --- */}
+
+        {/* The Checkout Modal can stay for now, but will eventually move to the CartPanel */}
         {isCheckoutModalOpen && clientSecret && (
             <div className={styles.checkoutModal}>
                 <div className={styles.checkoutFormContainer}>
@@ -314,11 +244,12 @@ export default function Home() {
                         <button onClick={() => setCheckoutModalOpen(false)} className={styles.closeBtn}>&times;</button>
                     </div>
                     <Elements options={{ clientSecret }} stripe={stripePromise}>
-                        <CheckoutForm onPaymentSuccess={onPaymentSuccess} />
+                        <CheckoutForm onPaymentSuccess={() => {}} />
                     </Elements>
                 </div>
             </div>
         )}
+        
         {selectedPin && (
           <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -326,7 +257,7 @@ export default function Home() {
               {viewedProduct ? (
                 <ProductDetail 
                     product={viewedProduct}
-                    onAddToCart={handleAddToCart}
+                    onAddToCart={addToCart} // <-- (6) USE GLOBAL addToCart
                     onBack={() => setViewedProduct(null)}
                 />
               ) : (
@@ -338,7 +269,6 @@ export default function Home() {
                     <div className="product-carousel-container" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                         {modalProducts.status === 'loading' && <p>Loading products...</p>}
                         {modalProducts.status === 'error' && <p>Could not load products.</p>}
-                        {modalProducts.status === 'success' && modalProducts.data.length === 0 && <p>No products found.</p>}
                         {modalProducts.status === 'success' && modalProducts.data.length > 0 && (
                             <>
                                 <h4>Products Available:</h4>
