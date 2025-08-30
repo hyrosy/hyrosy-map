@@ -6,8 +6,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button"; // <-- Import Button
 import { Card } from "@/components/ui/card";      // <-- Import Card
+import { useCart } from "@/context/CartContext";
 
 export default function ProductPage() {
+    const { addToCart } = useCart();
     const [product, setProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const { productId } = useParams();
@@ -80,7 +82,12 @@ export default function ProductPage() {
                             className="prose max-w-none text-gray-600 mb-8"
                             dangerouslySetInnerHTML={{ __html: product.description }}
                         />
-                        <Button size="lg" className="w-full sm:w-auto mt-auto">Add to Cart</Button>
+                        <Button 
+                        size="lg" 
+                            className="w-full sm:w-auto mt-auto"
+                            onClick={() => addToCart(product)}
+                        >
+                        </Button>
                     </div>
                 </div>
             </main>

@@ -24,7 +24,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className="light"> 
       <body className={`${geistSans.variable} ${geistMono.variable} ${inter.className}`}>
         {/* Use the Providers component here */}
         <Providers>
