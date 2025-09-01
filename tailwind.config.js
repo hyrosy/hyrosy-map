@@ -17,7 +17,7 @@ module.exports = {
     },
     extend: {
       colors: {
-        'brand-gold': '#d3bc8e', // Your custom color is here
+        'golden': '#d3bc8e', // Your custom color is here
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

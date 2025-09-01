@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 /* Add these styles to the bottom of your globals.css file */
 html, body, #__next {
   height: 100%;

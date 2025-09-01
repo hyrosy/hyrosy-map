@@ -163,7 +163,7 @@ export default function Home() {
                 </Button>
                 <Button 
                     size="lg"
-                    className="w-full shadow-lg rounded-full h-14 text-base font-semibold bg-golden text-black hover:bg-opacity-90" 
+                    className="w-full shadow-lg rounded-full h-14 text-base font-semibold bg-[#d3bc8e] text-black hover:bg-[#c8b185]" 
                     onClick={() => setFilterPanelOpen(true)}
                 >
                     <Search className="h-5 w-5 mr-2" />
