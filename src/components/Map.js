@@ -3,7 +3,8 @@
 import React, { useRef, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import styles from '@/app/page.module.css';
+
+// The old CSS module import is no longer needed.
 
 // Set the worker and access token once
 mapboxgl.workerUrl = "/mapbox-gl-csp-worker.js";
@@ -29,7 +30,6 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
 
         mapRef.current = map;
 
-        // --- THIS IS THE FIX ---
         // All map setup logic now happens inside the 'load' event listener
         map.on('load', () => {
             // Set up 3D terrain
@@ -88,6 +88,7 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
         // Add new markers for the displayed pins
         displayedPins.forEach(pin => {
             const markerEl = document.createElement('div');
+            // Inline styles for markers are fine, as they are dynamic
             markerEl.style.cssText = 'width: 20px; height: 20px; background-color: #007bff; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); cursor: pointer;';
             markerEl.addEventListener('click', () => onPinClick(pin));
             
@@ -99,7 +100,8 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
         });
     }, [displayedPins, mapRef, onPinClick]);
 
-    return <div ref={mapContainer} className={styles.mapContainer} />;
+    // Use Tailwind classes for the map container
+    return <div ref={mapContainer} className="absolute top-0 left-0 w-full h-full" />;
 };
 
 export default Map;

@@ -1,1 +1,8 @@
 @import "tailwindcss";
+/* Add these styles to the bottom of your globals.css file */
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrollbars on the main view */
+}

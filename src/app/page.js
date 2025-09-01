@@ -2,21 +2,23 @@
 
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import styles from './page.module.css';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
-import CheckoutForm from '@/components/CheckoutForm';
 import ProductDetail from '@/components/ProductDetail';
 import Image from 'next/image';
 import QuickLocator from '@/components/QuickLocator';
 import StoryModal from '@/components/StoryModal';
+import FilterPanel from '@/components/FilterPanel';
+import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
+import { MapPin, Search } from 'lucide-react';
 
 const Map = dynamic(() => import('@/components/Map'), { 
-  ssr: false 
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+      <p className="text-lg text-gray-600">Loading Map...</p>
+    </div>
+  )
 });
-
-const stripePromise = loadStripe('pk_live_51PWc0EP8TGcYvcnxRvYWWqJj4CU7dDENqzmk5zVfn2uSfF7At1RW7KuNjQCogPQRnBMCy1wEcQPxDRGj3rMk6Kgo00HZs2tuve');
 
 export default function Home() {
     const filterData = {
@@ -32,17 +34,9 @@ export default function Home() {
       'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
     };
     
-    // --- (1) REMOVED OLD CART STATE ---
-    // const [isCartPanelOpen, setCartPanelOpen] = useState(false);
-    // const [cart, setCart] = useState([]);
-    
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
-    const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
     const [allPins, setAllPins] = useState([]);
     const [displayedPins, setDisplayedPins] = useState([]);
-    const [activeMainCategory, setActiveMainCategory] = useState("Adventures");
-    const [selectedSubCategories, setSelectedSubCategories] = useState(new Set());
-    const [clientSecret, setClientSecret] = useState('');
     const [selectedPin, setSelectedPin] = useState(null);
     const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
     const [viewedProduct, setViewedProduct] = useState(null);
@@ -53,14 +47,8 @@ export default function Home() {
     const [storyContentUrl, setStoryContentUrl] = useState('');
     const [viewedCities, setViewedCities] = useState(new Set());
     const mapRef = useRef(null);
-
-    // --- (2) USE THE GLOBAL CART CONTEXT ---
     const { addToCart } = useCart();
 
-    // All your useEffect and handler functions for filters, cities, etc., remain the same...
-    // ... (useEffect for fetching pins) ...
-    // ... (handleCitySelect, handleFilter, etc.) ...
-    
     useEffect(() => {
         const fetchCityPins = async () => {
             if (!selectedCity) {
@@ -68,7 +56,7 @@ export default function Home() {
                 setDisplayedPins([]);
                 return;
             }
-            const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard`;
+            const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard&per_page=100`;
             try {
                 const response = await fetch(apiUrl);
                 if (!response.ok) throw new Error('API response was not ok.');
@@ -76,7 +64,7 @@ export default function Home() {
                 const cityPinsData = locations.map(loc => {
                     if (!loc.acf || !loc.acf.gps_coordinates) return null;
                     const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
-                    return { id: loc.id, lng, lat, title: loc.title.rendered, description: loc.acf.description || '', featured_image: loc.acf.featured_image?.url || null, subCategory: loc.acf.map_sub_category, category_connector_id: loc.acf.category_connector_id, map_category: loc.acf.map_category?.[0] || null, color: '#007bff' };
+                    return { ...loc, id: loc.id, lng, lat };
                 }).filter(Boolean);
                 setAllPins(cityPinsData);
                 setDisplayedPins(cityPinsData);
@@ -92,45 +80,18 @@ export default function Home() {
         }
     }, [selectedCity, viewedCities]);
 
-    const handleCitySelect = (cityKey) => {
-        setIsLoading(true);
-        setSelectedCity(cityData[cityKey]);
-        setTimeout(() => setIsLoading(false), 2000); 
-    };
-    
-    const handleResetView = () => {
-        setIsLoading(true); 
-        setSelectedCity(null);
-        setTimeout(() => setIsLoading(false), 2000);
-    };
-
-    const handleFilter = () => {
-        const selectedArray = Array.from(selectedSubCategories);
-        setDisplayedPins(selectedArray.length === 0 ? allPins : allPins.filter(pin => selectedArray.includes(pin.subCategory)));
-        setFilterPanelOpen(false);
-    };
-
-    const handleReset = () => {
-        setSelectedSubCategories(new Set());
-        setDisplayedPins(allPins);
-    };
-    
-    // --- (3) REMOVED OLD LOCAL CHECKOUT LOGIC ---
-    // The checkout logic is now handled inside the global CartPanel component.
-    // We can remove handleCheckout and onPaymentSuccess from this page.
-
     useEffect(() => {
         if (!selectedPin) {
             setViewedProduct(null);
             return;
         }
-        if (selectedPin.category_connector_id || selectedPin.connector_id) {
+        if (selectedPin.acf.category_connector_id || selectedPin.acf.connector_id) {
             const fetchProducts = async () => {
                 setModalProducts({ status: 'loading', data: [] });
-                const wooApiUrl = selectedPin.category_connector_id
-                    ? `https://www.hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.category_connector_id}`
-                    : `https://www.hyrosy.com/wp-json/wc/v3/products/${selectedPin.connector_id}`;
-                const authString = btoa(`ck_a97513965f94aeeb193fcf57ba06ac615c52cd5e:cs_9b522ebc8221748dad57255f1dc9c8eec5ec1b1d`);
+                const wooApiUrl = selectedPin.acf.category_connector_id
+                    ? `https://www.hyrosy.com/wp-json/wc/v3/products?category=${selectedPin.acf.category_connector_id}`
+                    : `https://www.hyrosy.com/wp-json/wc/v3/products/${selectedPin.acf.connector_id}`;
+                const authString = btoa(`${process.env.NEXT_PUBLIC_WOOCOMMERCE_KEY}:${process.env.NEXT_PUBLIC_WOOCOMMERCE_SECRET}`);
                 try {
                     const response = await fetch(wooApiUrl, { headers: { 'Authorization': `Basic ${authString}` } });
                     if (!response.ok) throw new Error('WooCommerce API response not ok');
@@ -148,14 +109,28 @@ export default function Home() {
         }
     }, [selectedPin]);
 
+    const handleCitySelect = (cityKey) => {
+        setIsLoading(true);
+        setSelectedCity(cityData[cityKey]);
+        setTimeout(() => setIsLoading(false), 2000); 
+    };
+    
+    const handleResetView = () => {
+        setIsLoading(true); 
+        setSelectedCity(null);
+        setTimeout(() => setIsLoading(false), 2000);
+    };
+
+    const handleFilter = (selectedSubs) => {
+        setDisplayedPins(selectedSubs.length === 0 ? allPins : allPins.filter(pin => selectedSubs.includes(pin.acf.map_sub_category)));
+    };
+
+    const handleReset = () => {
+        setDisplayedPins(allPins);
+    };
+
     return (
-      <main className={styles.mainContainer}>
-        {isLoading && (
-            <div className={styles.loadingOverlay}>
-                <div className={styles.spinner}></div>
-                <p>Entering City...</p>
-            </div>
-        )}
+      <main className="absolute inset-0">
         <Map 
             mapRef={mapRef}
             displayedPins={displayedPins}
@@ -163,19 +138,45 @@ export default function Home() {
             selectedCity={selectedCity}
         />
         
+        {/* This is a dedicated container for ALL UI elements that sits ON TOP of the map */}
+        <div className="absolute top-0 left-0 w-full h-full z-10 pointer-events-none">
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white pointer-events-auto">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                    <p className="mt-4">Entering City...</p>
+                </div>
+            )}
+
+            {/* Bottom-center controls */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 pointer-events-auto flex items-center gap-2">
+                <Button 
+                    size="icon"
+                    variant="secondary"
+                    className="h-14 w-14 rounded-full shadow-lg bg-black text-white hover:bg-gray-800 flex-shrink-0"
+                    onClick={() => setLocatorOpen(true)}
+                    title="Quick Locator"
+                >
+                    <MapPin className="h-6 w-6" />
+                </Button>
+                <Button 
+                    size="lg"
+                    className="w-full shadow-lg rounded-full h-14 text-base font-semibold bg-golden text-black hover:bg-opacity-90" 
+                    onClick={() => setFilterPanelOpen(true)}
+                >
+                    <Search className="h-5 w-5 mr-2" />
+                    Filter Experiences
+                </Button>
+                
+            </div>
+        </div>
+
         {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
-
-        <button 
-            className={styles.locatorIcon} 
-            onClick={() => setLocatorOpen(true)}
-        >
-            📍
-        </button>
-
+    
         {isLocatorOpen && (
             <>
                 <div 
-                    className={styles.locatorBackdrop} 
+                    className="fixed inset-0 bg-black/30 z-40" 
                     onClick={() => setLocatorOpen(false)}
                 />
                 <QuickLocator 
@@ -190,99 +191,60 @@ export default function Home() {
                     }} 
                 />
             </>
+    
         )}
-        <button onClick={() => setFilterPanelOpen(true)} className={styles.openFilterBtn}>🔍 Filter Pins</button>
+
         
-        {/* --- (4) REMOVED OLD CART BUTTON ---
-            The cart button is now in the global Header component.
-            We can delete the old button here.
-        --- */}
 
-        <div className={`${styles.panel} ${styles.filterPanel} ${isFilterPanelOpen ? styles.open : ''}`}>
-            {/* The entire filter panel JSX remains unchanged... */}
-            <div className={styles.panelHeader}>
-              <h2>Filter Pins</h2>
-              <button onClick={() => setFilterPanelOpen(false)} className={styles.closeBtn}>&times;</button>
-            </div>
-            <div className={styles.filterContent}>
-              <div className={styles.mainCategories}>
-                  {Object.keys(filterData).map(category => (
-                      <div key={category} className={activeMainCategory === category ? styles.active : ''} onClick={() => setActiveMainCategory(category)}>
-                          { { "Adventures": "🛍️", "Workshops": "✨", "Food": "🍽️", "Monuments": "🏛️" }[category] || '📍' } {category}
-                      </div>
-                  ))}
-              </div>
-              <div className={styles.subCategories}>
-                  {(filterData[activeMainCategory] || []).map(subCategory => (
-                      <div key={subCategory} className={selectedSubCategories.has(subCategory) ? styles.selected : ''} onClick={() => {
-                          const newSet = new Set(selectedSubCategories);
-                          if (newSet.has(subCategory)) newSet.delete(subCategory);
-                          else newSet.add(subCategory);
-                          setSelectedSubCategories(newSet);
-                      }}>
-                          {subCategory}
-                      </div>
-                  ))}
-              </div>
-            </div>
-            <div className={styles.panelFooter}>
-                <button onClick={handleReset} className={styles.panelBtn}>Reset</button>
-                <button onClick={handleFilter} className={styles.panelBtn} style={{background: '#007bff'}}>View Pins</button>
-            </div>
-        </div>
-
-        {/* --- (5) REMOVED OLD CART PANEL ---
-            This is now handled by the global CartPanel component in layout.js.
-        --- */}
-
-        {/* The Checkout Modal can stay for now, but will eventually move to the CartPanel */}
-        {isCheckoutModalOpen && clientSecret && (
-            <div className={styles.checkoutModal}>
-                <div className={styles.checkoutFormContainer}>
-                    <div className={styles.panelHeader}>
-                        <h2>Complete Payment</h2>
-                        <button onClick={() => setCheckoutModalOpen(false)} className={styles.closeBtn}>&times;</button>
-                    </div>
-                    <Elements options={{ clientSecret }} stripe={stripePromise}>
-                        <CheckoutForm onPaymentSuccess={() => {}} />
-                    </Elements>
-                </div>
-            </div>
-        )}
+        <FilterPanel
+            isOpen={isFilterPanelOpen}
+            onClose={() => setFilterPanelOpen(false)}
+            filterData={filterData}
+            onFilter={handleFilter}
+            onReset={handleReset}
+        />
         
         {selectedPin && (
-          <div className={styles.fullScreenModal} onClick={() => setSelectedPin(null)}>
-            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.modalCloseBtn} onClick={() => setSelectedPin(null)}>&times;</button>
-              {viewedProduct ? (
-                <ProductDetail 
-                    product={viewedProduct}
-                    onAddToCart={addToCart} // <-- (6) USE GLOBAL addToCart
-                    onBack={() => setViewedProduct(null)}
-                />
-              ) : (
-                <>
-                  {selectedPin.featured_image && <Image src={selectedPin.featured_image} alt={selectedPin.title} width={450} height={200} className={styles.modalImage} />}
-                  <div className={styles.modalTextContent}>
-                    <h2 className={styles.popupTitle}>{selectedPin.title}</h2>
-                    <p className={styles.popupCategory}>{selectedPin.description}</p>
-                    <div className="product-carousel-container" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
-                        {modalProducts.status === 'loading' && <p>Loading products...</p>}
-                        {modalProducts.status === 'error' && <p>Could not load products.</p>}
+          <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4" onClick={() => setSelectedPin(null)}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="p-4 border-b flex justify-between items-center">
+                <h2 className="text-lg font-semibold">{viewedProduct ? viewedProduct.name : selectedPin.title.rendered}</h2>
+                <button className="text-2xl text-gray-500 hover:text-gray-800" onClick={() => setSelectedPin(null)}>&times;</button>
+              </div>
+              <div className="p-6 flex-1 overflow-y-auto">
+                {viewedProduct ? (
+                  <ProductDetail 
+                      product={viewedProduct}
+                      onAddToCart={addToCart}
+                      onBack={() => setViewedProduct(null)}
+                  />
+                ) : (
+                  <div>
+                    {selectedPin.acf.featured_image?.url && (
+                        <Image src={selectedPin.acf.featured_image.url} alt={selectedPin.title.rendered} width={450} height={200} className="w-full h-48 object-cover rounded-md mb-4" />
+                    )}
+                    <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: selectedPin.content.rendered }} />
+                    
+                    <div className="mt-4 pt-4 border-t">
+                        {modalProducts.status === 'loading' && <p>Loading experiences...</p>}
+                        {modalProducts.status === 'error' && <p>Could not load experiences.</p>}
                         {modalProducts.status === 'success' && modalProducts.data.length > 0 && (
                             <>
-                                <h4>Products Available:</h4>
-                                {modalProducts.data.map(product => (
-                                    <div key={product.id} onClick={() => setViewedProduct(product)} style={{padding: '8px 5px', borderBottom: '1px solid #333', cursor: 'pointer', color: '#fff'}}>
-                                        {product.name}
-                                    </div>
-                                ))}
+                                <h4 className="font-semibold mb-2">Available Experiences:</h4>
+                                <ul className="space-y-2">
+                                  {modalProducts.data.map(product => (
+                                      <li key={product.id} onClick={() => setViewedProduct(product)} className="p-2 -mx-2 rounded-md hover:bg-gray-100 cursor-pointer flex justify-between items-center">
+                                        <span>{product.name}</span>
+                                        <span className="font-medium text-sm">${product.price}</span>
+                                      </li>
+                                  ))}
+                                </ul>
                             </>
                         )}
                     </div>
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}

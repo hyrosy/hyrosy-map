@@ -1,11 +1,8 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Providers } from "./providers"; // <-- We will use this
+import { Providers } from "./providers"; 
 import Header from "@/components/Header";
 import CartPanel from "@/components/CartPanel";
-
-const inter = Inter({ subsets: ["latin"] });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,19 +15,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "hyrosy Map",
-  description: "A rich world to explore",
+  title: "hyrosy World Map",
+  description: "Discover Morocco with hyrosy",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="light"> 
-      <body className={`${geistSans.variable} ${geistMono.variable} ${inter.className}`}>
-        {/* Use the Providers component here */}
+    <html lang="en" className="light">
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <Providers>
           <Header />
+          <main>{children}</main> {/* Let the page component handle its own layout */}
           <CartPanel />
-          {children}
         </Providers>
       </body>
     </html>
