@@ -2,7 +2,8 @@
 
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useState } from 'react';
-import styles from '@/app/page.module.css';
+import { Button } from '@/components/ui/button'; // Import the shadcn Button
+import { Alert, AlertDescription } from '@/components/ui/alert'; // Import the shadcn Alert
 
 export default function CheckoutForm({ onPaymentSuccess }) {
   const stripe = useStripe();
@@ -12,37 +13,46 @@ export default function CheckoutForm({ onPaymentSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      return;
+    }
     setIsLoading(true);
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      redirect: 'if_required', // Do not redirect
+      redirect: 'if_required', // Important: Prevents Stripe from redirecting
     });
     
     if (error) {
-        if (error.type === "card_error" || error.type === "validation_error") {
-            setMessage(error.message);
-        } else {
-            setMessage("An unexpected error occurred.");
-        }
+      if (error.type === "card_error" || error.type === "validation_error") {
+        setMessage(error.message);
+      } else {
+        setMessage("An unexpected error occurred.");
+      }
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        setMessage("Payment succeeded!");
-        onPaymentSuccess();
+      setMessage("Payment successful!");
+      onPaymentSuccess(); // Call the success handler from the parent page
     }
 
     setIsLoading(false);
   };
 
   return (
-    <form id="payment-form" onSubmit={handleSubmit} className={styles.checkoutForm}>
+    <form id="payment-form" onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement id="payment-element" />
-      <button disabled={isLoading || !stripe || !elements} id="submit" className={styles.payButton}>
+      
+      <Button disabled={isLoading || !stripe || !elements} id="submit" className="w-full" size="lg">
         <span id="button-text">
-          {isLoading ? <div className={styles.spinner} id="spinner"></div> : "Pay now"}
+          {isLoading ? "Processing..." : "Pay now"}
         </span>
-      </button>
-      {message && <div id="payment-message" className={styles.paymentMessage}>{message}</div>}
+      </Button>
+      
+      {/* Show error or success messages in a styled Alert component */}
+      {message && (
+        <Alert variant={message.includes('succeeded') ? 'default' : 'destructive'}>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      )}
     </form>
   );
 }
