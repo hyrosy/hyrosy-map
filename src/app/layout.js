@@ -24,9 +24,9 @@ export default function RootLayout({ children }) {
     <html lang="en" className="light h-full">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <Providers>
-          <div className="flex flex-col h-full">
+          <div>
           <Header />
-          <main className="flex-1 relative">{children}</main> {/* Let the page component handle its own layout */}
+          <main>{children}</main> {/* Let the page component handle its own layout */}
           <CartPanel />
           </div>
         </Providers>
