@@ -12,24 +12,30 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container h-16 flex items-center justify-between">
-        
-        {/* Left side: Logo and main navigation */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            {/* --- YOUR LOGO GOES HERE --- */}
-            <Image 
-              src="/hyrosy.png" // Assumes your logo is named logo.png in the /public folder
-              alt="Hyrosy Logo" 
-              width={150} // Set the desired width
-              height={80} // Set the desired height
-            />
-          </Link>
-          <nav className="hidden md:flex items-center gap-4">
-              <Link href="/store" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Store
-              </Link>
-              {/* You can add more links here in the future */}
-          </nav>
+
+        {/* Left side (empty, for spacing) */}
+        <div className="w-10">
+          {/* You could add a hamburger menu for mobile here later */}
+        </div>
+
+        {/* Center: Logo and Store Link */}
+        <div className="w-1/3 flex justify-center">
+          {/* Create a container for the two links */}
+          <div className="flex items-center gap-6">
+            {/* Link #1: The Logo */}
+            <Link href="/">
+              <Image 
+                src="/hyrosy.png"
+                alt="Hyrosy Logo" 
+                width={90}
+                height={120}
+              />
+            </Link>
+            {/* Link #2: The "Store" text */}
+            <Link href="/store" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+              Store
+            </Link>
+          </div>
         </div>
 
         {/* Right side: Cart icon */}
