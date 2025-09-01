@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import ProductDetail from '@/components/ProductDetail';
+import PinDetailsModal from '@/components/PinDetailsModal';
 import Image from 'next/image';
 import QuickLocator from '@/components/QuickLocator';
 import StoryModal from '@/components/StoryModal';
@@ -10,6 +11,7 @@ import FilterPanel from '@/components/FilterPanel';
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { MapPin, Search } from 'lucide-react';
+
 
 const Map = dynamic(() => import('@/components/Map'), { 
   ssr: false,
@@ -203,51 +205,13 @@ export default function Home() {
             onFilter={handleFilter}
             onReset={handleReset}
         />
-        
-        {selectedPin && (
-          <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4" onClick={() => setSelectedPin(null)}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-              <div className="p-4 border-b flex justify-between items-center">
-                <h2 className="text-lg font-semibold">{viewedProduct ? viewedProduct.name : selectedPin.title.rendered}</h2>
-                <button className="text-2xl text-gray-500 hover:text-gray-800" onClick={() => setSelectedPin(null)}>&times;</button>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto">
-                {viewedProduct ? (
-                  <ProductDetail 
-                      product={viewedProduct}
-                      onAddToCart={addToCart}
-                      onBack={() => setViewedProduct(null)}
-                  />
-                ) : (
-                  <div>
-                    {selectedPin.acf.featured_image?.url && (
-                        <Image src={selectedPin.acf.featured_image.url} alt={selectedPin.title.rendered} width={450} height={200} className="w-full h-48 object-cover rounded-md mb-4" />
-                    )}
-                    <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: selectedPin.content.rendered }} />
-                    
-                    <div className="mt-4 pt-4 border-t">
-                        {modalProducts.status === 'loading' && <p>Loading experiences...</p>}
-                        {modalProducts.status === 'error' && <p>Could not load experiences.</p>}
-                        {modalProducts.status === 'success' && modalProducts.data.length > 0 && (
-                            <>
-                                <h4 className="font-semibold mb-2">Available Experiences:</h4>
-                                <ul className="space-y-2">
-                                  {modalProducts.data.map(product => (
-                                      <li key={product.id} onClick={() => setViewedProduct(product)} className="p-2 -mx-2 rounded-md hover:bg-gray-100 cursor-pointer flex justify-between items-center">
-                                        <span>{product.name}</span>
-                                        <span className="font-medium text-sm">${product.price}</span>
-                                      </li>
-                                  ))}
-                                </ul>
-                            </>
-                        )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* --- Use the new, refactored modal here --- */}
+        <PinDetailsModal 
+            pin={selectedPin}
+            onClose={() => setSelectedPin(null)}
+            onAddToCart={addToCart}
+        />
+    
       </main>
     );
 }
