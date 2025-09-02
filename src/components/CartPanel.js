@@ -1,73 +1,92 @@
 'use client';
 
 import { useCart } from "@/context/CartContext";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from 'next/link';
-import { Trash2 } from "lucide-react"; // A popular icon library
+import { Trash2, ShoppingBag } from "lucide-react"; // Added ShoppingBag for empty state
+import clsx from 'clsx';
 
 const CartPanel = () => {
   const { isCartOpen, closeCart, cartItems, removeFromCart, updateQuantity, total } = useCart();
 
-  return (
-    <Sheet open={isCartOpen} onOpenChange={closeCart}>
-      <SheetContent className="flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Your Itinerary</SheetTitle>
-        </SheetHeader>
-        
-        {cartItems.length > 0 ? (
-          <>
-            <div className="flex-1 overflow-y-auto -mx-6 px-6 divide-y">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 py-4">
-                  <div className="relative h-16 w-16 rounded-md overflow-hidden border">
-                     <Image
-                      src={item.images?.[0]?.src || '/placeholder.png'}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">${item.price}</p>
-                    <div className="flex items-center gap-2 mt-2 border rounded-md w-fit">
-                      <Button variant="ghost" size="sm" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="h-7 w-7">-</Button>
-                      <span className="text-sm w-4 text-center">{item.quantity}</span>
-                      <Button variant="ghost" size="sm" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="h-7 w-7">+</Button>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeFromCart(item.id)}>
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+  const panelClasses = clsx(
+    'fixed top-0 left-0 w-96 h-full bg-black/80 backdrop-blur-md text-white shadow-2xl z-[1001] flex flex-col transition-transform duration-500 ease-in-out',
+    isCartOpen ? 'translate-x-0' : '-translate-x-full'
+  );
 
-            <SheetFooter className="mt-auto border-t pt-6">
-                <div className="w-full space-y-4">
-                    <div className="flex justify-between font-semibold">
-                        <span>Total</span>
-                        <span>${total}</span>
-                    </div>
-                    <Link href="/checkout" passHref>
-                      <Button className="w-full" size="lg" onClick={closeCart}>
-                        Proceed to Checkout
-                      </Button>
-                    </Link>
+  return (
+    <div className={panelClasses}>
+      {/* Panel Header */}
+      <div className="flex justify-between items-center p-4 bg-black/30 border-b border-gray-700">
+        <h2 className="text-xl font-bold">Your Itinerary</h2>
+        <button onClick={closeCart} className="text-3xl">&times;</button>
+      </div>
+
+      {cartItems.length > 0 ? (
+        <>
+          {/* Cart Items List */}
+          <div className="flex-1 overflow-y-auto p-4 divide-y divide-gray-700">
+            {cartItems.map((item) => (
+              <div key={item.id} className="flex items-start gap-4 py-4">
+                <div className="relative h-16 w-16 rounded-md overflow-hidden border border-gray-600 flex-shrink-0">
+                   <Image
+                    src={item.images?.[0]?.src || '/placeholder.png'}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-            </SheetFooter>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-muted-foreground">Your cart is empty.</p>
-            <Button variant="outline" className="mt-4" onClick={closeCart}>Keep Exploring</Button>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-white">{item.name}</h3>
+                  <p className="text-sm text-gray-400">${item.price}</p>
+                  <div className="flex items-center gap-1 mt-2 border border-gray-600 rounded-md w-fit bg-white/5">
+                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="h-7 w-7 text-gray-300 hover:bg-white/10 rounded-l-md">-</button>
+                    <span className="text-sm w-5 text-center">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="h-7 w-7 text-gray-300 hover:bg-white/10 rounded-r-md">+</button>
+                  </div>
+                </div>
+                <button className="text-gray-500 hover:text-red-500 transition-colors" onClick={() => removeFromCart(item.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+
+          {/* Panel Footer */}
+          <div className="p-4 bg-black/30 border-t border-gray-700 mt-auto">
+              <div className="w-full space-y-4">
+                  <div className="flex justify-between font-semibold text-lg">
+                      <span>Total</span>
+                      <span>${total}</span>
+                  </div>
+                  <Link href="/checkout" passHref>
+                    <Button 
+                      className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold" 
+                      size="lg" 
+                      onClick={closeCart}
+                    >
+                      Proceed to Checkout
+                    </Button>
+                  </Link>
+              </div>
+          </div>
+        </>
+      ) : (
+        // Empty Cart State
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <ShoppingBag className="h-16 w-16 text-gray-600 mb-4" />
+          <p className="text-gray-400">Your itinerary is empty.</p>
+          <Button 
+            variant="outline" 
+            className="mt-4 bg-transparent border-gray-500 hover:bg-gray-700 hover:text-white" 
+            onClick={closeCart}
+          >
+            Keep Exploring
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 

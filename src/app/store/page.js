@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import ProductCard from '@/components/ProductCard';
 import CategorySidebar from '@/components/CategorySidebar';
+import { Search } from 'lucide-react';
 
 export default function StorePage() {
     const [products, setProducts] = useState([]);
@@ -19,7 +20,6 @@ export default function StorePage() {
             const headers = { 'Authorization': `Basic ${authString}` };
 
             try {
-                // Fetch products and categories in parallel
                 const [productsRes, categoriesRes] = await Promise.all([
                     fetch('https://data.hyrosy.com/wp-json/wc/v3/products', { headers }),
                     fetch('https://data.hyrosy.com/wp-json/wc/v3/products/categories', { headers })
@@ -33,7 +33,6 @@ export default function StorePage() {
                 const categoriesData = await categoriesRes.json();
 
                 setProducts(productsData);
-                // Filter out the "Uncategorized" category
                 const validCategories = Array.isArray(categoriesData) ? categoriesData : [];
                 setCategories(categoriesData.filter(cat => cat.slug !== 'uncategorized'));
             } catch (error) {
@@ -50,14 +49,22 @@ export default function StorePage() {
         : products;
 
     if (isLoading) {
-        return <div className="flex items-center justify-center h-screen text-lg">Loading Store...</div>;
+        return (
+            <div className="flex flex-col items-center justify-center h-screen text-lg bg-black text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mb-4"></div>
+                Loading Store...
+            </div>
+        );
     }
 
     return (
-        <div className="bg-white min-h-screen">
-            {/* Header */}
-            <header className="py-8 px-8 border-b bg-gray-50">
-                <h1 className="text-4xl font-bold text-gray-800">Store</h1>
+        <div className="bg-black text-white min-h-screen">
+            {/* Page Header */}
+            <header className="py-10 px-8 border-b border-gray-700">
+                <div className="max-w-7xl mx-auto">
+                    <h1 className="text-4xl font-bold">Store</h1>
+                    <p className="text-gray-400 mt-1">Browse all available experiences</p>
+                </div>
             </header>
 
             <main className="flex flex-col md:flex-row max-w-7xl mx-auto p-4 sm:p-8 gap-8">
@@ -79,9 +86,10 @@ export default function StorePage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-16">
-                            <h2 className="text-2xl font-semibold">No Products Found</h2>
-                            <p className="text-gray-500 mt-2">Try selecting a different category.</p>
+                        <div className="text-center py-16 flex flex-col items-center justify-center bg-gray-900/50 border border-gray-700 rounded-lg">
+                            <Search className="w-12 h-12 text-gray-500 mb-4" />
+                            <h2 className="text-2xl font-semibold text-white">No Products Found</h2>
+                            <p className="text-gray-400 mt-2">Try selecting a different category or view all experiences.</p>
                         </div>
                     )}
                 </div>

@@ -1,36 +1,38 @@
 'use client';
 
-import React from 'react';
-import { cn } from "@/lib/utils"; // cn is a utility from shadcn for merging class names
+import clsx from 'clsx';
+import { Tag } from 'lucide-react';
 
 const CategorySidebar = ({ categories, selectedCategory, onSelectCategory }) => {
-  const baseItemClasses = "w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors";
-  const activeItemClasses = "bg-gray-100 text-gray-900";
-  const inactiveItemClasses = "text-gray-600 hover:bg-gray-50 hover:text-gray-900";
-
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800 px-3">Categories</h2>
-      <ul className="space-y-1">
-        <li>
-          <button
-            onClick={() => onSelectCategory(null)}
-            className={cn(baseItemClasses, !selectedCategory ? activeItemClasses : inactiveItemClasses)}
-          >
-            All Products
-          </button>
-        </li>
+    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 h-full">
+      <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
+        <Tag className="w-5 h-5 mr-2 text-cyan-400" />
+        Categories
+      </h2>
+      <div className="space-y-1">
+        <button
+          onClick={() => onSelectCategory(null)}
+          className={clsx(
+            'w-full text-left px-3 py-2 rounded-md text-sm transition-colors',
+            !selectedCategory ? 'bg-blue-600 text-white font-semibold' : 'text-gray-300 hover:bg-white/10 hover:text-white'
+          )}
+        >
+          All Experiences
+        </button>
         {categories.map((category) => (
-          <li key={category.id}>
-            <button
-              onClick={() => onSelectCategory(category.id)}
-              className={cn(baseItemClasses, selectedCategory === category.id ? activeItemClasses : inactiveItemClasses)}
-            >
-              {category.name}
-            </button>
-          </li>
+          <button
+            key={category.id}
+            onClick={() => onSelectCategory(category.id)}
+            className={clsx(
+              'w-full text-left px-3 py-2 rounded-md text-sm transition-colors',
+              selectedCategory === category.id ? 'bg-blue-600 text-white font-semibold' : 'text-gray-300 hover:bg-white/10 hover:text-white'
+            )}
+          >
+            {category.name}
+          </button>
         ))}
-      </ul>
+      </div>
     </div>
   );
 };

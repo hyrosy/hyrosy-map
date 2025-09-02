@@ -16,7 +16,6 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
 
     // Main useEffect for map initialization and core logic
     useEffect(() => {
-        // If the map is already initialized, don't create a new one
         if (mapRef.current) return;
 
         const map = new mapboxgl.Map({
@@ -30,9 +29,7 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
 
         mapRef.current = map;
 
-        // All map setup logic now happens inside the 'load' event listener
         map.on('load', () => {
-            // Set up 3D terrain
             map.addSource('mapbox-dem', {
                 'type': 'raster-dem',
                 'url': 'mapbox://mapbox.terrain-rgb',
@@ -40,10 +37,9 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
                 'maxzoom': 14
             });
             map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-            map.setFog({}); // Apply default fog
+            map.setFog({});
         });
         
-        // Cleanup function to remove the map instance
         return () => {
             if (mapRef.current) {
                 mapRef.current.remove();
@@ -55,40 +51,51 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
     // Separate useEffect for handling camera flights when the city changes
     useEffect(() => {
         const map = mapRef.current;
-        if (!map || !selectedCity) return;
+        if (!map) return;
         
-        // Ensure the style is loaded before flying
-        if (map.isStyleLoaded()) {
-            map.flyTo({
-                center: selectedCity.center,
-                zoom: 15,
-                pitch: 75,
-                bearing: -17.6,
-                speed: 1.2,
-                essential: true
-            });
-            // Attach the animation end callback if provided
-            if (onAnimationEnd) {
-                map.once('moveend', onAnimationEnd);
+        // This useEffect now correctly handles both flying TO a city and flying BACK.
+        if (selectedCity) {
+            // Logic to fly TO a city
+            if (map.isStyleLoaded()) {
+                map.flyTo({
+                    center: selectedCity.center,
+                    zoom: 15,
+                    pitch: 75,
+                    bearing: -17.6,
+                    speed: 1.2,
+                    essential: true
+                });
+            }
+        } else {
+            // --- THIS IS THE CORRECTED LOGIC ---
+            // Logic to fly back to the default "All Morocco" view when selectedCity is null
+            if (map.isStyleLoaded()) {
+                 map.flyTo({
+                    center: [-5.4, 32.2],
+                    zoom: 5.5,
+                    pitch: 0,
+                    bearing: 0,
+                    speed: 1.2,
+                    essential: true
+                });
             }
         }
-        
+
+        if (onAnimationEnd) {
+            map.once('moveend', onAnimationEnd);
+        }
     }, [selectedCity, mapRef, onAnimationEnd]);
 
     // Separate useEffect for updating the pins
     useEffect(() => {
         const map = mapRef.current;
-        // Wait for the map to be fully loaded before adding markers
         if (!map || !map.isStyleLoaded()) return;
 
-        // Clear existing markers
         markersRef.current.forEach(marker => marker.remove());
         markersRef.current = [];
 
-        // Add new markers for the displayed pins
         displayedPins.forEach(pin => {
             const markerEl = document.createElement('div');
-            // Inline styles for markers are fine, as they are dynamic
             markerEl.style.cssText = 'width: 20px; height: 20px; background-color: #007bff; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); cursor: pointer;';
             markerEl.addEventListener('click', () => onPinClick(pin));
             
@@ -100,7 +107,6 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
         });
     }, [displayedPins, mapRef, onPinClick]);
 
-    // Use Tailwind classes for the map container
     return <div ref={mapContainer} className="absolute top-0 left-0 w-full h-full" />;
 };
 

@@ -1,30 +1,41 @@
 'use client';
 
 import React from 'react';
+import clsx from 'clsx';
+import { Globe, X } from 'lucide-react';
 
-// The old CSS module is no longer needed.
+const QuickLocator = ({ cities, onCitySelect, onResetView, isOpen, onClose }) => {
 
-const QuickLocator = ({ cities, onCitySelect, onResetView }) => {
+  const panelClasses = clsx(
+    "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-md rounded-lg shadow-2xl z-50 w-full max-w-xs border border-gray-700 text-white transition-all duration-300 ease-in-out",
+    isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+  );
+
   return (
-    // We now use Tailwind classes for a modern, centered modal-like panel
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-sm rounded-lg shadow-xl z-50 w-full max-w-xs border">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-gray-800">Quick Locator</h3>
+    <div className={panelClasses}>
+      <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+        <h3 className="font-semibold text-white">Quick Locator</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+        </button>
       </div>
       <ul className="p-2">
-        <li className="mb-2">
+        {/* Special Button for Reset View */}
+        <li className="mb-1">
           <button
             onClick={onResetView}
-            className="w-full text-left px-3 py-2 rounded-md text-sm font-semibold text-blue-600 hover:bg-gray-100 transition-colors"
+            className="w-full text-left px-3 py-2 rounded-md text-sm font-semibold text-cyan-400 hover:bg-white/10 transition-colors flex items-center gap-2"
           >
-            🇲🇦 View All Morocco
+            <Globe className="w-4 h-4" />
+            View All Morocco
           </button>
         </li>
+        {/* Map over the cities */}
         {Object.entries(cities).map(([key, city]) => (
           <li key={key}>
             <button
               onClick={() => onCitySelect(key)}
-              className="w-full text-left px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full text-left px-3 py-2 rounded-md text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
             >
               {city.name}
             </button>

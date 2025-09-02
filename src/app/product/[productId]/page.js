@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from "@/components/ui/button"; // <-- Import Button
-import { Card } from "@/components/ui/card";      // <-- Import Card
+import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
+import { ArrowLeft, ShoppingCart, CheckCircle } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 export default function ProductPage() {
     const { addToCart } = useCart();
     const [product, setProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAdded, setIsAdded] = useState(false);
     const { productId } = useParams();
 
     useEffect(() => {
@@ -37,57 +39,89 @@ export default function ProductPage() {
         };
         fetchProduct();
     }, [productId]);
+    
+    const handleAddToCartClick = () => {
+        if (!product) return;
+        addToCart(product);
+        setIsAdded(true);
+        setTimeout(() => setIsAdded(false), 2000); // Reset button state after 2 seconds
+    };
 
     if (isLoading) {
-        return <div className="flex items-center justify-center h-screen text-lg">Loading Product...</div>;
+        return (
+            <div className="flex flex-col items-center justify-center h-screen text-lg bg-black text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mb-4"></div>
+                Loading Experience...
+            </div>
+        );
     }
 
     if (!product) {
-        return <div className="flex items-center justify-center h-screen text-lg">Product not found.</div>;
+        return (
+            <div className="flex flex-col items-center justify-center h-screen text-lg bg-black text-white">
+                <h2 className="text-2xl font-semibold">Product Not Found</h2>
+                <Link href="/store" className="mt-4 text-blue-400 hover:underline">
+                    Return to Store
+                </Link>
+            </div>
+        );
     }
 
     const imageUrl = product.images?.[0]?.src || '/placeholder.png';
 
     return (
-        <div className="bg-white min-h-screen">
-            {/* Header */}
-            <header className="py-4 px-8 border-b">
-                <Link href="/store" className="text-blue-600 hover:underline">
-                    &larr; Back to Store
-                </Link>
-            </header>
+        <div className="bg-black text-white min-h-screen">
+            <main className="p-4 sm:p-8 max-w-6xl mx-auto">
+                {/* Back to Store Link */}
+                <div className="mb-8">
+                    <Link href="/store" className="inline-flex items-center text-gray-300 hover:text-white transition-colors">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Store
+                    </Link>
+                </div>
 
-            {/* Product Details */}
-            <main className="p-4 sm:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
                     {/* Image Column */}
-                    <Card className="overflow-hidden border-none shadow-none">
-                         <div className="relative w-full aspect-square">
-                            <Image
-                                src={imageUrl}
-                                alt={product.name || 'Product Image'}
-                                fill
-                                className="object-cover rounded-lg"
-                                sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                        </div>
-                    </Card>
+                    <div className="w-full aspect-square relative overflow-hidden rounded-lg border border-gray-700">
+                        <Image
+                            src={imageUrl}
+                            alt={product.name || 'Product Image'}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                        />
+                    </div>
 
                     {/* Details Column */}
-                    <div className="flex flex-col justify-center py-4">
+                    <div className="flex flex-col py-4">
                         <h1 className="text-3xl sm:text-4xl font-bold mb-4">{product.name}</h1>
-                        <p className="text-2xl text-gray-800 mb-6">{product.price} €</p>
+                        
                         <div
-                            className="prose max-w-none text-gray-600 mb-8"
+                            className="prose prose-invert max-w-none text-gray-300 mb-8"
                             dangerouslySetInnerHTML={{ __html: product.description }}
                         />
-                        <Button 
-                        size="lg" 
-                            className="w-full sm:w-auto mt-auto"
-                            onClick={() => addToCart(product)}
-                        >
-                        </Button>
+
+                        <div className="mt-auto flex flex-col sm:flex-row sm:items-center gap-6">
+                           <p className="text-4xl font-bold text-cyan-400">${product.price}</p>
+                           <Button 
+                                size="lg" 
+                                className={cn(
+                                    "w-full sm:w-auto h-14 text-lg font-bold transition-colors duration-300",
+                                    isAdded 
+                                    ? "bg-green-600 hover:bg-green-700" 
+                                    : "bg-blue-600 hover:bg-blue-500"
+                                )}
+                                onClick={handleAddToCartClick}
+                                disabled={isAdded}
+                            >
+                                {isAdded ? (
+                                    <CheckCircle className="h-6 w-6 mr-2" />
+                                ) : (
+                                    <ShoppingCart className="h-6 w-6 mr-2" />
+                                )}
+                                {isAdded ? 'Added to Itinerary!' : 'Add to Itinerary'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </main>

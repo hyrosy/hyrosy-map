@@ -8,9 +8,13 @@ import Image from 'next/image';
 import QuickLocator from '@/components/QuickLocator';
 import StoryModal from '@/components/StoryModal';
 import FilterPanel from '@/components/FilterPanel';
+import QuestPanel from '@/components/QuestPanel';
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
-import { MapPin, Search } from 'lucide-react';
+import { MapPin, Search, Route } from 'lucide-react'; // Add Route here
+// import QuestPanel from '@/components/QuestPanel';
+
+
 
 
 const Map = dynamic(() => import('@/components/Map'), { 
@@ -31,9 +35,9 @@ export default function Home() {
     };
 
     const cityData = {
-      'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
-      'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
-      'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
+    'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
+    'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
+    'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
     };
     
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -51,6 +55,26 @@ export default function Home() {
     const mapRef = useRef(null);
     const { addToCart } = useCart();
 
+    const [isQuestPanelOpen, setQuestPanelOpen] = useState(false);
+    const [quests, setQuests] = useState([]);
+
+
+    useEffect(() => {
+    const fetchQuests = async () => {
+        const apiUrl = 'https://data.hyrosy.com/wp-json/wp/v2/quests?acf_format=standard';
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('API response was not ok.');
+            const questsData = await response.json();
+            setQuests(questsData);
+        } catch (error) {
+            console.error('Failed to fetch quests:', error);
+        }
+    };
+    fetchQuests();
+}, []);
+
+
     useEffect(() => {
         const fetchCityPins = async () => {
             if (!selectedCity) {
@@ -58,6 +82,7 @@ export default function Home() {
                 setDisplayedPins([]);
                 return;
             }
+            setIsLoading(true); // <-- Start loading here
             const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard&per_page=100`;
             try {
                 const response = await fetch(apiUrl);
@@ -72,15 +97,18 @@ export default function Home() {
                 setDisplayedPins(cityPinsData);
             } catch (error) {
                 console.error(`API fetch failed for ${selectedCity.name}:`, error);
+
+            } finally {
+            setIsLoading(false); // <-- Stop loading here, after the fetch is done
+
             }
         };
         fetchCityPins();
         if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
             setStoryContentUrl(selectedCity.storyUrl);
             setStoryModalOpen(true);
-            setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
-        }
-    }, [selectedCity, viewedCities]);
+            setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));        }
+    }, [selectedCity]);
 
     useEffect(() => {
         if (!selectedPin) {
@@ -112,15 +140,12 @@ export default function Home() {
     }, [selectedPin]);
 
     const handleCitySelect = (cityKey) => {
-        setIsLoading(true);
-        setSelectedCity(cityData[cityKey]);
-        setTimeout(() => setIsLoading(false), 2000); 
+    setSelectedCity(cityData[cityKey]);
     };
     
     const handleResetView = () => {
-        setIsLoading(true); 
-        setSelectedCity(null);
-        setTimeout(() => setIsLoading(false), 2000);
+    setSelectedCity(null);
+    setDisplayedPins([]);
     };
 
     const handleFilter = (selectedSubs) => {
@@ -130,6 +155,20 @@ export default function Home() {
     const handleReset = () => {
         setDisplayedPins(allPins);
     };
+
+    const handleQuestStepSelect = (step) => {
+    if (step && mapRef.current) {
+        const [lat, lng] = step.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
+        mapRef.current.flyTo({
+        center: [lng, lat], // Mapbox uses [Lng, Lat]
+        zoom: 16,
+        pitch: 60,
+        speed: 1.0,
+        essential: true,
+        });
+    }
+    };
+
 
     return (
       <main className="absolute inset-0">
@@ -167,36 +206,53 @@ export default function Home() {
                     onClick={() => setFilterPanelOpen(true)}
                 >
                     <Search className="h-5 w-5 mr-2" />
-                    Filter Experiences
+                    Filter
                 </Button>
-                
+                <Button
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg bg-black text-white hover:bg-gray-800 flex-shrink-0"
+                onClick={() => setQuestPanelOpen(true)}
+                >
+                <Route className="h-5 w-5 mr-2" />
+                </Button>       
             </div>
         </div>
 
         {isStoryModalOpen && <StoryModal videoUrl={storyContentUrl} onClose={() => setStoryModalOpen(false)} />}
     
         {isLocatorOpen && (
-            <>
-                <div 
-                    className="fixed inset-0 bg-black/30 z-40" 
-                    onClick={() => setLocatorOpen(false)}
-                />
-                <QuickLocator 
-                    cities={cityData} 
-                    onCitySelect={(cityKey) => {
-                        handleCitySelect(cityKey);
-                        setLocatorOpen(false);
-                    }} 
-                    onResetView={() => {
-                        handleResetView();
-                        setLocatorOpen(false);
-                    }} 
-                />
-            </>
-    
+    <>
+        <div 
+            className="fixed inset-0 z-40" // Simplified backdrop
+            onClick={() => setLocatorOpen(false)}
+        />
+        <QuickLocator 
+            isOpen={isLocatorOpen} // <-- PASS THE PROP HERE
+            onClose={() => setLocatorOpen(false)}
+            cities={cityData} 
+            onCitySelect={(cityKey) => {
+                handleCitySelect(cityKey);
+                setLocatorOpen(false);
+                setTimeout(() => setLocatorOpen(false), 100); 
+
+            }} 
+            onResetView={() => {
+                handleResetView();
+                setLocatorOpen(false);
+                setTimeout(() => setLocatorOpen(false), 100); 
+
+            }} 
+        />
+        </>
         )}
 
-        
+        <QuestPanel
+        isOpen={isQuestPanelOpen}
+        onClose={() => setQuestPanelOpen(false)}
+        onStepSelect={handleQuestStepSelect}
+        quests={quests}
+        />
+
 
         <FilterPanel
             isOpen={isFilterPanelOpen}
