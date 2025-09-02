@@ -22,7 +22,7 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
             container: mapContainer.current,
             style: 'mapbox://styles/hyrosy/cmet0cvjx00db01qwc2gfet91',
             center: [-10.067870,29.032917],
-            zoom: 1.5,
+            zoom: 0.5,
             pitch: 0,
         });
 
