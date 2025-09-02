@@ -21,10 +21,9 @@ const Map = ({ mapRef, displayedPins, onPinClick, selectedCity, onAnimationEnd }
         const map = new mapboxgl.Map({
             container: mapContainer.current,
             style: 'mapbox://styles/hyrosy/cmet0cvjx00db01qwc2gfet91',
-            center: [-5.4, 32.2],
-            zoom: 5.5,
+            center: [-10.067870,29.032917],
+            zoom: 1.5,
             pitch: 0,
-            maxBounds: [[-18, 27], [-1, 36]]
         });
 
         mapRef.current = map;

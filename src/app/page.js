@@ -206,7 +206,7 @@ export default function Home() {
                     onClick={() => setFilterPanelOpen(true)}
                 >
                     <Search className="h-5 w-5 mr-2" />
-                    Filter
+                    Filter Pins
                 </Button>
                 <Button
                 size="icon"
