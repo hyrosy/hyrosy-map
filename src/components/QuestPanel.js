@@ -118,16 +118,42 @@ const QuestPanel = ({
       {/* Panel Content */}
       <div className="flex-grow overflow-y-auto p-5">
         {!activeQuest ? (
+
+
           // Quest List View
           <div className="flex flex-col gap-4">
-            {quests.map(quest => (
+            {quests.map(quest => {
+              // --- PROGRESS CALCULATION LOGIC IS NOW HERE ---
+              const totalSteps = quest.acf.quest_steps?.length || 0;
+              const completedSteps = Array.from(exploredSteps).filter(stepId => 
+                  quest.acf.quest_steps?.some(step => step.ID === stepId)
+              ).length;
+              const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+
+              return (
               <div key={quest.id} className="bg-white/10 p-4 rounded-lg cursor-pointer border border-gray-600 hover:bg-white/20 transition-colors" onClick={() => handleSelectQuest(quest)}>
                 <h3 className="font-semibold text-lg">{quest.title.rendered}</h3>
                 <p className="text-sm text-gray-300 my-1">{quest.acf.quest_description}</p>
                 <span className="text-xs font-bold text-cyan-400">{quest.acf.quest_duration}</span>
+                {/* --- THE PROGRESS BAR IS NOW ON THE CARD --- */}
+                                {totalSteps > 0 && (
+                                    <div className="mt-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="text-xs font-semibold text-white">Progress</p>
+                                            <p className="text-xs font-bold text-cyan-400">{Math.round(progressPercentage)}%</p>
+                                        </div>
+                                        <div className="w-full bg-gray-700 rounded-full h-1">
+                                            <div 
+                                                className="bg-cyan-400 h-1 rounded-full transition-all duration-500" 
+                                                style={{ width: `${progressPercentage}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
               </div>
-            ))}
-          </div>
         ) : (
           // Quest Steps View
           <div>
