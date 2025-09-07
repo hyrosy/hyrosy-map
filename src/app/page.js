@@ -11,7 +11,8 @@ import FilterPanel from '@/components/FilterPanel';
 import QuestPanel from '@/components/QuestPanel';
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
-import { MapPin, Search, Route } from 'lucide-react'; // Add Route here
+import { MapPin, Search, Route, BookOpen  } from 'lucide-react'; // Add Route here
+import StoryArchivePanel from '@/components/StoryArchivePanel';
 // import QuestPanel from '@/components/QuestPanel';
 
 
@@ -60,6 +61,26 @@ export default function Home() {
     const [activeQuest, setActiveQuest] = useState(null);
     const [questStepIndex, setQuestStepIndex] = useState(0);
 
+    // --- ADDITION: State for the Story Archive Panel ---
+    const [isStoryArchiveOpen, setStoryArchiveOpen] = useState(false); 
+
+    // --- ADDITION: New state to hold the story ID from a pin click ---
+    const [initialStoryId, setInitialStoryId] = useState(null);
+
+    // --- ADDITION: Function to open the story panel from the pin modal ---
+    const handleReadStory = (storyId) => {
+        setInitialStoryId(storyId); // Set the specific story to show
+        setStoryArchiveOpen(true);  // Open the main panel
+        setSelectedPin(null);       // Close the pin modal
+    };
+
+    // --- ADDITION: Function to handle closing the story panel ---
+    const handleCloseStoryArchive = () => {
+        setStoryArchiveOpen(false);
+        setInitialStoryId(null); // Reset the specific story ID
+    };
+
+    // --- ADDITION: State for tracking explored quest steps ---
     const [exploredSteps, setExploredSteps] = useState(() => {
     // This function only runs once on the initial load
     if (typeof window !== 'undefined') {
@@ -261,6 +282,15 @@ export default function Home() {
                 onClick={() => setQuestPanelOpen(true)}
                 >
                 <Route className="h-5 w-5 mr-2" />
+                </Button> 
+                {/* --- ADDITION: New Story Archive Button --- */}
+                <Button
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg bg-black text-white hover:bg-gray-800 flex-shrink-0"
+                onClick={() => setStoryArchiveOpen(true)}
+                title="Story Archive"
+               >   
+                <BookOpen className="h-6 w-6" />
                 </Button>       
             </div>
         </div>
@@ -299,12 +329,20 @@ export default function Home() {
             exploredSteps={exploredSteps} // Pass the explored steps set down       
             isOpen={isQuestPanelOpen}
             onClose={() => setQuestPanelOpen(false)}
-            quests={quests}ise
+            quests={quests}
             activeQuest={activeQuest}
             onQuestSelect={handleQuestSelect} // Use the new handler
             currentStepIndex={questStepIndex} // Pass the state down
             onStepSelect={handleQuestStepSelect} // Pass the handler down
+            selectedCity={selectedCity}
             
+        />
+
+        {/* --- ADDITION: Render the StoryArchivePanel --- */}
+        <StoryArchivePanel 
+            isOpen={isStoryArchiveOpen}
+            onClose={() => setStoryArchiveOpen(false)}
+            initialStoryId={initialStoryId} // Pass the specific story ID to open
         />
 
 
@@ -323,6 +361,7 @@ export default function Home() {
             isOpen={!!selectedPin} // <-- ADD THIS LINE
             onClose={() => setSelectedPin(null)}
             onAddToCart={addToCart}
+            onReadStory={handleReadStory}
         />
     
       </main>

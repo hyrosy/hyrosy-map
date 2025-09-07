@@ -35,7 +35,7 @@ const fetchProductsFromSource = async (baseUrl, key, secret, { productId, catego
 };
 
 
-const PinDetailsModal = ({ pin, isOpen, onClose }) => { // Removed unused props
+const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory  }) => { // Removed unused props
     const { addToCart } = useCart();
     
     // State for managing the modal's multi-window view
@@ -53,6 +53,9 @@ const PinDetailsModal = ({ pin, isOpen, onClose }) => { // Removed unused props
     // Calculate once and reuse. Prevents re-calculation on every render.
     const hasBookings = !!(pin?.acf.bookable_product_id || pin?.acf.bookable_experiences_category_id);
     const hasProducts = !!(pin?.acf.connector_id || pin?.acf.category_connector_id);
+
+    // Check if a story is linked
+    const hasStory = !!pin?.acf.story_id;
 
     // This effect resets the modal's state when a new pin is selected or it's opened
     useEffect(() => {
@@ -133,6 +136,7 @@ const PinDetailsModal = ({ pin, isOpen, onClose }) => { // Removed unused props
     const pinImageUrl = pin.acf.featured_image?.url;
 
     const renderContent = () => {
+        
         // --- WINDOW 3: PRODUCT DETAIL VIEW ---
         if (currentView === 'product' && selectedProduct) {
             return (
@@ -187,16 +191,31 @@ const PinDetailsModal = ({ pin, isOpen, onClose }) => { // Removed unused props
                 {pinImageUrl && <div className="relative w-full h-48 rounded-md mb-4 overflow-hidden"><Image src={pinImageUrl} alt={pin.title.rendered} fill className="object-cover" /></div>}
                 <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: pin.content.rendered }} />
                 
-                {(hasBookings || hasProducts) && (
+                {(hasBookings || hasProducts || hasStory) && (
                     <div className="mt-6 pt-4 border-t border-gray-700">              
-                        <button onClick={() => setCurrentView('hub')} className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
+                        <button onClick={() => setCurrentView('hub')} className="w-full h-12 bg-golden-600 hover:bg-golden-500 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
                             View Offers
                         </button>
                     </div>
                 )}
+                {hasStory && (
+                             <button onClick={() => onReadStory(pin.acf.story_id)} className="w-full h-12 bg-golden hover:bg-golden/90 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
+                                <BookOpen className="w-4 h-4 mr-2"/>
+                                Read Story
+                            </button>
+                )}
             </div>
         );
     };
+
+    // Update back button logic
+    const handleBack = () => {
+        if (currentView === 'product') {
+            setCurrentView('hub');
+        } else {
+            setCurrentView('details');
+        }
+    }
 
     // --- MAIN MODAL STRUCTURE ---
     return (
@@ -211,7 +230,7 @@ const PinDetailsModal = ({ pin, isOpen, onClose }) => { // Removed unused props
                         </button>
                     )}
                     <h2 className={`text-lg font-semibold ${currentView !== 'details' ? 'text-center flex-grow' : ''}`}>
-                        {currentView === 'product' && selectedProduct ? selectedProduct.name : pin.title.rendered}
+                        {currentView === 'product' && selectedProduct ? selectedProduct.name : pin.title.rendered }
                     </h2>
                     <button className="text-2xl text-gray-400 hover:text-white transition-colors" onClick={onClose}><X className="w-5 h-5"/></button>
                 </div>
