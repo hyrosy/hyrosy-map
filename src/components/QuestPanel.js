@@ -43,6 +43,7 @@ const QuestPanel = ({
         onQuestSelect(quest); // Call the prop function  
   };
   
+  
   useEffect(() => {
     if (!activeQuest) {
       setStepsData({ status: 'idle', data: [] });
@@ -151,7 +152,13 @@ const QuestPanel = ({
             {stepsData.status === 'error' && <p>Could not load quest. Please try again.</p>}
             {stepsData.status === 'success' && (
               <div className="flex flex-col gap-4">
-                {stepsData.data.map((step, index) => (
+                {stepsData.data.map((step, index) => {
+              // --- THIS IS THE FIX ---
+              // Calculate isExplored for each step individually inside the map
+              const isExplored = exploredSteps.has(step.id);
+
+              return (
+                  
                   <div 
                     key={step.id} 
                     className={clsx('relative p-4 cursor-pointer transition-all border-l-4', {
@@ -205,7 +212,8 @@ const QuestPanel = ({
                       <p className="mt-3 ml-11 p-3 text-xs bg-yellow-500/10 border-l-4 border-yellow-400 rounded-r-md italic">💡 {step.acf.quest_tip}</p>
                     )}
                   </div>
-                ))}
+                  ); 
+                })}
               </div>
             )}
           </div>

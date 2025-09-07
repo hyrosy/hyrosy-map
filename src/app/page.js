@@ -60,7 +60,19 @@ export default function Home() {
     const [activeQuest, setActiveQuest] = useState(null);
     const [questStepIndex, setQuestStepIndex] = useState(0);
 
-    const [exploredSteps, setExploredSteps] = useState(new Set());
+    const [exploredSteps, setExploredSteps] = useState(() => {
+    // This function only runs once on the initial load
+    if (typeof window !== 'undefined') {
+        const saved = window.localStorage.getItem('exploredSteps');
+        if (saved) {
+            // If we found saved data, parse it and create a new Set from it
+            const initialValue = JSON.parse(saved);
+            return new Set(initialValue);
+        }
+    }
+    // If no saved data, start with an empty Set
+    return new Set();
+});
 
     // In src/app/page.js
 
@@ -75,6 +87,15 @@ export default function Home() {
             return newExplored;
         });
     };
+
+    // This effect saves the explored steps to localStorage whenever they change
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            // Convert the Set to an Array to be able to store it as a JSON string
+            const stepsArray = Array.from(exploredSteps);
+            window.localStorage.setItem('exploredSteps', JSON.stringify(stepsArray));
+        }
+    }, [exploredSteps]);
 
 
     useEffect(() => {
@@ -278,7 +299,7 @@ export default function Home() {
             exploredSteps={exploredSteps} // Pass the explored steps set down       
             isOpen={isQuestPanelOpen}
             onClose={() => setQuestPanelOpen(false)}
-            quests={quests}
+            quests={quests}ise
             activeQuest={activeQuest}
             onQuestSelect={handleQuestSelect} // Use the new handler
             currentStepIndex={questStepIndex} // Pass the state down
