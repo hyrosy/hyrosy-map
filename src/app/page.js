@@ -28,13 +28,7 @@ const Map = dynamic(() => import('@/components/Map'), {
 });
 
 export default function Home() {
-    const filterData = {
-      "Adventures": ["Quad Biking", "Camel Rides", "Buggy Tours"],
-      "Workshops": ["Cooking Class", "Pottery", "Artisan Crafts"],
-      "Food": ["Traditional Food", "Moroccan Sweets", "Cafes"],
-      "Monuments": ["Historic Sites", "Gardens", "Museums"]
-    };
-
+    
     const cityData = {
     'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
     'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
@@ -42,9 +36,13 @@ export default function Home() {
     };
     
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
+
     const [allPins, setAllPins] = useState([]);
     const [displayedPins, setDisplayedPins] = useState([]);
     const [selectedPin, setSelectedPin] = useState(null);
+
+    const [allCategories, setAllCategories] = useState([]); 
+
     const [modalProducts, setModalProducts] = useState({ status: 'idle', data: [] });
     const [viewedProduct, setViewedProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -61,10 +59,8 @@ export default function Home() {
     const [activeQuest, setActiveQuest] = useState(null);
     const [questStepIndex, setQuestStepIndex] = useState(0);
 
-    // --- ADDITION: State for the Story Archive Panel ---
+    const [filterData, setFilterData] = useState({});
     const [isStoryArchiveOpen, setStoryArchiveOpen] = useState(false); 
-
-    // --- ADDITION: New state to hold the story ID from a pin click ---
     const [initialStoryId, setInitialStoryId] = useState(null);
 
     // --- ADDITION: Function to open the story panel from the pin modal ---
@@ -108,6 +104,81 @@ export default function Home() {
             return newExplored;
         });
     };
+// --- EFFECT 1: Fetch global data (categories) ONCE on startup ---
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const categoriesResponse = await fetch('https://data.hyrosy.com/wp-json/wp/v2/location_category?per_page=100');
+                if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
+                const categories = await categoriesResponse.json();
+                
+                setAllCategories(categories); // Store raw category data
+
+                // Format data for the filter panel
+                const formattedFilters = {};
+                const parentCategories = categories.filter(cat => cat.parent === 0);
+                parentCategories.forEach(parent => {
+                    formattedFilters[parent.name] = categories
+                        .filter(child => child.parent === parent.id)
+                        .map(child => child.name);
+                });
+                setFilterData(formattedFilters);
+            } catch (error) {
+                console.error("Failed to fetch location categories:", error);
+                setFilterData({}); // Set to empty on error to stop loading
+            }
+        };
+        fetchCategories();
+    }, []); // Empty array means this runs only once.
+
+    // The ONLY useEffect for fetching city pins
+useEffect(() => {
+    const fetchCityPins = async () => {
+        if (!selectedCity) {
+            setAllPins([]);
+            setDisplayedPins([]);
+            return;
+        }
+        setIsLoading(true);
+
+        // COMBINED: Get embedded categories AND standard ACF format
+        const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&per_page=100&_embed&acf_format=standard`;
+
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('API response was not ok.');
+            const locations = await response.json();
+
+            // MODIFIED: Process the coordinate string that we know works
+            // This is the logic from the useEffect you said was working.
+            const cityPinsData = locations.map(loc => {
+                if (!loc.acf || !loc.acf.gps_coordinates) return null; // Check for the coordinate string
+                const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
+                // Ensure the pin has valid coordinates before returning it
+                if (isNaN(lat) || isNaN(lng)) return null;
+                return { ...loc, id: loc.id, lat, lng }; // Add lat/lng to the top level for easy access
+            }).filter(Boolean); // This removes any null entries from the array
+
+            setAllPins(cityPinsData);
+            setDisplayedPins(cityPinsData);
+
+            // This logic for the story modal can stay
+            if (!viewedCities.has(selectedCity.name.toLowerCase())) {
+                setStoryContentUrl(selectedCity.storyUrl);
+                setStoryModalOpen(true);
+                setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
+            }
+
+        } catch (error) {
+            console.error(`API fetch failed for ${selectedCity.name}:`, error);
+            setAllPins([]);
+            setDisplayedPins([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchCityPins();
+}, [selectedCity]); // Removed viewedCities from dependency array to prevent re-fetching
 
     // This effect saves the explored steps to localStorage whenever they change
     useEffect(() => {
@@ -135,40 +206,7 @@ export default function Home() {
 }, []);
 
 
-    useEffect(() => {
-        const fetchCityPins = async () => {
-            if (!selectedCity) {
-                setAllPins([]);
-                setDisplayedPins([]);
-                return;
-            }
-            setIsLoading(true); // <-- Start loading here
-            const apiUrl = `https://data.hyrosy.com/wp-json/wp/v2/locations?city=${selectedCity.name.toLowerCase()}&acf_format=standard&per_page=100`;
-            try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error('API response was not ok.');
-                const locations = await response.json();
-                const cityPinsData = locations.map(loc => {
-                    if (!loc.acf || !loc.acf.gps_coordinates) return null;
-                    const [lat, lng] = loc.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
-                    return { ...loc, id: loc.id, lng, lat };
-                }).filter(Boolean);
-                setAllPins(cityPinsData);
-                setDisplayedPins(cityPinsData);
-            } catch (error) {
-                console.error(`API fetch failed for ${selectedCity.name}:`, error);
-
-            } finally {
-            setIsLoading(false); // <-- Stop loading here, after the fetch is done
-
-            }
-        };
-        fetchCityPins();
-        if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
-            setStoryContentUrl(selectedCity.storyUrl);
-            setStoryModalOpen(true);
-            setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));        }
-    }, [selectedCity]);
+    
 
     useEffect(() => {
         if (!selectedPin) {
@@ -208,10 +246,58 @@ export default function Home() {
     setDisplayedPins([]);
     };
 
+   // --- FILTERING LOGIC (Now works on the current city's pins) ---
     const handleFilter = (selectedSubs) => {
-        setDisplayedPins(selectedSubs.length === 0 ? allPins : allPins.filter(pin => selectedSubs.includes(pin.acf.map_sub_category)));
-    };
+  // LOG 1: What did we receive from the panel?
+  console.log('%cHome Page: Received selections from panel:', 'color: orange; font-weight: bold;', selectedSubs);
 
+  // --- REPLACEMENT for .flat() ---
+  // This is a more compatible way to get all selected subcategory names into one array
+  const selectedSubCategoryNames = Object.values(selectedSubs).reduce((acc, val) => acc.concat(val), []);
+  
+  if (selectedSubCategoryNames.length === 0) {
+    setDisplayedPins(allPins);
+    return;
+  }
+
+  // LOG 2: What are the names we're trying to match?
+  console.log('Home Page: Flattened subcategory names to search for:', selectedSubCategoryNames);
+
+  const selectedSubCategoryIds = new Set(
+    allCategories
+      .filter(cat => selectedSubCategoryNames.includes(cat.name))
+      .map(cat => cat.id)
+  );
+
+  // LOG 3: Did we successfully find the IDs for those names?
+  console.log('%cHome Page: Found matching category IDs:', 'color: lightgreen; font-weight: bold;', selectedSubCategoryIds);
+
+  // --- NEW LOG ---
+  // Let's check if we have pins to filter
+  console.log(`Home Page: About to filter ${allPins.length} pins...`);
+
+  const filtered = allPins.filter(pin => {
+    // Check if the pin actually has the category data. This is a critical check.
+    const pinCategoryIds = pin.location_category || [];
+    
+    // For debugging, let's inspect the first pin
+    if (pin === allPins[0]) {
+      console.log('Home Page: Inspecting first pin. It has category IDs:', pinCategoryIds);
+      // Let's also see the pin object itself to confirm its structure
+      console.log('Home Page: Full first pin object:', pin); 
+    }
+    
+    return pinCategoryIds.some(id => selectedSubCategoryIds.has(id));
+  });
+
+  // LOG 4: What is the final result?
+  console.log(`%cHome Page: Filtering complete. Found ${filtered.length} matching pins.`, 'color: yellow; font-weight: bold;');
+
+  setDisplayedPins(filtered);
+};
+
+
+    
     const handleReset = () => {
         setDisplayedPins(allPins);
     };
@@ -236,6 +322,27 @@ export default function Home() {
             });
     }
     };
+
+    // --- ADDITION: Handle when a user clicks a search result ---
+    const handleSearchResultSelect = (pin) => {
+    if (mapRef.current && pin.lat && pin.lng) {
+        const map = mapRef.current;
+        map.flyTo({
+            center: [pin.lng, pin.lat], // Use the lat/lng we added during fetching
+            zoom: 15,
+            essential: true
+        });
+
+        // Set a slight delay to allow the map to pan before the modal opens
+        setTimeout(() => {
+            setSelectedPin(pin);
+        }, 500);
+    } else {
+        
+    }
+    // You also need to close the filter panel
+    setFilterPanelOpen(false);
+};
 
 
     return (
@@ -352,6 +459,8 @@ export default function Home() {
             filterData={filterData}
             onFilter={handleFilter}
             onReset={handleReset}
+            allPins={allPins} // Pass all pins for searching
+            onSearchResultSelect={handleSearchResultSelect} // Pass the handler function
         />
 
 

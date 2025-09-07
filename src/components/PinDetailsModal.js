@@ -189,8 +189,14 @@ const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory  }) => { // Removed
         return (
             <div className="p-6">
                 {pinImageUrl && <div className="relative w-full h-48 rounded-md mb-4 overflow-hidden"><Image src={pinImageUrl} alt={pin.title.rendered} fill className="object-cover" /></div>}
-                <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: pin.content.rendered }} />
                 
+                <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: pin.content.rendered }} />
+                 {pin.acf.description && (
+            <div 
+                className="prose prose-invert max-w-none text-gray-300 mb-6" 
+                dangerouslySetInnerHTML={{ __html: pin.acf.description }} 
+            />
+            )}
                 {(hasBookings || hasProducts || hasStory) && (
                     <div className="mt-6 pt-4 border-t border-gray-700">              
                         <button onClick={() => setCurrentView('hub')} className="w-full h-12 bg-golden-600 hover:bg-golden-500 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
