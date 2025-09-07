@@ -4,8 +4,10 @@ import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from 'next/link';
-import { Trash2, ShoppingBag } from "lucide-react"; // Added ShoppingBag for empty state
+import { Trash2, ShoppingBag, Calendar, Clock, User } from "lucide-react"; // Added ShoppingBag for empty state
 import clsx from 'clsx';
+import { format } from 'date-fns';
+
 
 const CartPanel = () => {
   const { isCartOpen, closeCart, cartItems, removeFromCart, updateQuantity, total } = useCart();
@@ -40,13 +42,28 @@ const CartPanel = () => {
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-white">{item.name}</h3>
                   <p className="text-sm text-gray-400">${item.price}</p>
+                  
+                  {/* --- THIS IS THE NEW DISPLAY LOGIC --- */}
+                  <div className="text-xs text-gray-400 mt-2 space-y-1">
+                    {item.date && (
+                        <p className="flex items-center"><Calendar className="w-3 h-3 mr-1.5"/> {format(new Date(item.date), 'PPP')}</p>
+                    )}
+                    {item.time && (
+                        <p className="flex items-center"><Clock className="w-3 h-3 mr-1.5"/> {item.time}</p>
+                    )}
+                     <p className="flex items-center"><User className="w-3 h-3 mr-1.5"/> {item.quantity} Participant(s)</p>
+                  </div>
+                  
                   <div className="flex items-center gap-1 mt-2 border border-gray-600 rounded-md w-fit bg-white/5">
                     <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="h-7 w-7 text-gray-300 hover:bg-white/10 rounded-l-md">-</button>
                     <span className="text-sm w-5 text-center">{item.quantity}</span>
                     <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="h-7 w-7 text-gray-300 hover:bg-white/10 rounded-r-md">+</button>
                   </div>
+
+
                 </div>
                 <button className="text-gray-500 hover:text-red-500 transition-colors" onClick={() => removeFromCart(item.id)}>
+                  
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>

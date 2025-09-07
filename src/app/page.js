@@ -57,6 +57,24 @@ export default function Home() {
 
     const [isQuestPanelOpen, setQuestPanelOpen] = useState(false);
     const [quests, setQuests] = useState([]);
+    const [activeQuest, setActiveQuest] = useState(null);
+    const [questStepIndex, setQuestStepIndex] = useState(0);
+
+    const [exploredSteps, setExploredSteps] = useState(new Set());
+
+    // In src/app/page.js
+
+    const handleToggleStepExplored = (stepId) => {
+        setExploredSteps(prevExplored => {
+            const newExplored = new Set(prevExplored);
+            if (newExplored.has(stepId)) {
+                newExplored.delete(stepId); // If it's already there, remove it
+            } else {
+                newExplored.add(stepId); // Otherwise, add it
+            }
+            return newExplored;
+        });
+    };
 
 
     useEffect(() => {
@@ -156,16 +174,24 @@ export default function Home() {
         setDisplayedPins(allPins);
     };
 
-    const handleQuestStepSelect = (step) => {
-    if (step && mapRef.current) {
-        const [lat, lng] = step.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
-        mapRef.current.flyTo({
-        center: [lng, lat], // Mapbox uses [Lng, Lat]
-        zoom: 16,
-        pitch: 60,
-        speed: 1.0,
-        essential: true,
-        });
+    const handleQuestSelect = (quest) => {
+        setActiveQuest(quest);
+        setQuestStepIndex(0); // Always reset to the first step when a NEW quest is selected
+    };
+
+    const handleQuestStepSelect = (step, index) => {
+        setQuestStepIndex(index); // Update the index
+        setSelectedPin(step); // <-- THIS IS THE FIX
+
+        if (step && mapRef.current) {
+            const [lat, lng] = step.acf.gps_coordinates.split(',').map(s => parseFloat(s.trim()));
+            mapRef.current.flyTo({
+                center: [lng, lat],
+                zoom: 16,
+                pitch: 60,
+                speed: 1.0,
+                essential: true,
+            });
     }
     };
 
@@ -225,6 +251,7 @@ export default function Home() {
         <div 
             className="fixed inset-0 z-40" // Simplified backdrop
             onClick={() => setLocatorOpen(false)}
+            
         />
         <QuickLocator 
             isOpen={isLocatorOpen} // <-- PASS THE PROP HERE
@@ -247,10 +274,16 @@ export default function Home() {
         )}
 
         <QuestPanel
-        isOpen={isQuestPanelOpen}
-        onClose={() => setQuestPanelOpen(false)}
-        onStepSelect={handleQuestStepSelect}
-        quests={quests}
+            onToggleStepExplored={handleToggleStepExplored} // Pass the new handler down
+            exploredSteps={exploredSteps} // Pass the explored steps set down       
+            isOpen={isQuestPanelOpen}
+            onClose={() => setQuestPanelOpen(false)}
+            quests={quests}
+            activeQuest={activeQuest}
+            onQuestSelect={handleQuestSelect} // Use the new handler
+            currentStepIndex={questStepIndex} // Pass the state down
+            onStepSelect={handleQuestStepSelect} // Pass the handler down
+            
         />
 
 
@@ -261,9 +294,12 @@ export default function Home() {
             onFilter={handleFilter}
             onReset={handleReset}
         />
+
+
         {/* --- Use the new, refactored modal here --- */}
         <PinDetailsModal 
             pin={selectedPin}
+            isOpen={!!selectedPin} // <-- ADD THIS LINE
             onClose={() => setSelectedPin(null)}
             onAddToCart={addToCart}
         />

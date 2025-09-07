@@ -1,82 +1,79 @@
 'use client';
 
-import React, { createContext, useState, useContext } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
-// 1. Create the context
-const CartContext = createContext(null);
+const CartContext = createContext();
 
-// 2. Create a custom hook to make it easy to use the context
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (context === null) {
-    // This will happen if you try to use useCart outside of CartProvider
-    throw new Error("useCart must be used within a CartProvider");
-  }
-  return context;
-};
+export const useCart = () => useContext(CartContext);
 
-// 3. Create the provider component
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  
-  const clearCart = () => {
-    setCartItems([]);
-  };
+    const [cartItems, setCartItems] = useState([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [total, setTotal] = useState(0);
 
-  const addToCart = (product, quantity = 1) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+    useEffect(() => {
+        const newTotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.price) * item.quantity), 0);
+        setTotal(newTotal.toFixed(2));
+    }, [cartItems]);
+
+    // --- THIS IS THE CORRECTED FUNCTION ---
+    const addToCart = (product, options = {}) => {
+        const { quantity = 1, date = null, time = null } = options;
+
+        setCartItems(prevItems => {
+            // In a real app, you might want a more complex check for existing items 
+            // (e.g., same product but different dates should be separate items).
+            // For now, we'll keep it simple and just add it as a new item.
+            const uniqueId = product.id + (date ? `-${date.toISOString()}` : '') + (time ? `-${time}` : '');
+            
+            const existingItem = prevItems.find(item => item.uniqueId === uniqueId);
+
+            if (existingItem) {
+                 return prevItems.map(item =>
+                    item.uniqueId === uniqueId ? { ...item, quantity: item.quantity + quantity } : item
+                );
+            }
+            
+            // Add the new booking details to the item object
+            return [...prevItems, { ...product, quantity, date, time, uniqueId }];
+        });
+        setIsCartOpen(true); // Open cart on add
+    };
+
+    const removeFromCart = (uniqueId) => {
+        setCartItems(prevItems => prevItems.filter(item => item.uniqueId !== uniqueId));
+    };
+
+    const updateQuantity = (uniqueId, newQuantity) => {
+        if (newQuantity < 1) {
+            removeFromCart(uniqueId);
+            return;
+        }
+        setCartItems(prevItems =>
+            prevItems.map(item =>
+                item.uniqueId === uniqueId ? { ...item, quantity: newQuantity } : item
+            )
         );
-      }
-      return [...prevItems, { ...product, quantity }];
-    });
-    setIsCartOpen(true);
-  };
-  
-  const removeFromCart = (productId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
-  };
+    };
+    
+    const clearCart = () => setCartItems([]);
+    const openCart = () => setIsCartOpen(true);
+    const closeCart = () => setIsCartOpen(false);
+    const toggleCart = () => setIsCartOpen(prevState => !prevState);
 
-  const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-    } else {
-      setCartItems(prevItems =>
-        prevItems.map(item =>
-          item.id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    }
-  };
+    const value = {
+        cartItems,
+        isCartOpen,
+        total,
+        itemCount: cartItems.reduce((acc, item) => acc + item.quantity, 0),
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        openCart,
+        closeCart,
+        toggleCart,
+    };
 
-  const toggleCart = () => setIsCartOpen(!isCartOpen);
-  const openCart = () => setIsCartOpen(true);
-  const closeCart = () => setIsCartOpen(false);
-  
-  const total = cartItems.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0).toFixed(2);
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  const value = {
-    cartItems,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    isCartOpen,
-    toggleCart,
-    openCart,
-    closeCart,
-    itemCount,
-    total,
-    clearCart,
-  };
-
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
-  );
+    return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
