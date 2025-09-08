@@ -11,9 +11,12 @@ import FilterPanel from '@/components/FilterPanel';
 import QuestPanel from '@/components/QuestPanel';
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
-import { MapPin, Search, Route, BookOpen  } from 'lucide-react'; // Add Route here
+import { MapPin, Search, Route, BookOpen, Crosshair } from 'lucide-react'; // Add Route here
 import StoryArchivePanel from '@/components/StoryArchivePanel';
-// import QuestPanel from '@/components/QuestPanel';
+import mbxDirections from '@mapbox/mapbox-sdk/services/directions'; // Add this import at the top
+import mapboxgl from 'mapbox-gl'; 
+
+
 
 
 
@@ -62,6 +65,168 @@ export default function Home() {
     const [filterData, setFilterData] = useState({});
     const [isStoryArchiveOpen, setStoryArchiveOpen] = useState(false); 
     const [initialStoryId, setInitialStoryId] = useState(null);
+
+
+    const directionsClient = mbxDirections({ accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN });
+
+    const [userMarker, setUserMarker] = useState(null); // State to hold the user's location marker
+
+    const handleGoToUserLocation = () => {
+        console.log('Function called. Current userMarker state is:', userMarker);
+
+        if (!mapRef.current) return; // Make sure the map is available
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { longitude, latitude } = position.coords;
+                const userCoords = [longitude, latitude];
+                const map = mapRef.current;
+
+                // 1. Smoothly move the map to the user's location
+                map.flyTo({
+                    center: userCoords,
+                    zoom: 16, // Zoom in to a street-level view
+                    pitch: 75,
+                    essential: true
+                });
+
+                // 2. Add or update the blue dot marker
+                if (userMarker) {
+                    // If the marker already exists, just move it
+                    userMarker.setLngLat(userCoords);
+                } else {
+                    // 1. Create a new HTML element
+                    const markerElement = document.createElement('div');
+                    markerElement.className = 'user-marker';
+
+                    // 2. Create the marker using the custom element
+                    const newMarker = new mapboxgl.Marker(markerElement)
+                        .setLngLat(userCoords)
+                        .addTo(map);
+                    
+                    setUserMarker(newMarker); // Save the new marker to state
+                }
+            },
+            (error) => {
+                console.error("Error getting user location:", error);
+                alert("Could not get your location. Please enable location services.");
+            }
+        );
+    }; // End of handleGoToUserLocation
+
+    const handleGetDirections = (pin) => {
+    // 1. Close the pin modal, as you requested.
+    setSelectedPin(null); 
+    
+    console.log("Requesting directions for:", pin.title.rendered);
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { longitude, latitude } = position.coords;
+            const userCoords = [longitude, latitude];
+            const pinCoords = [pin.lng, pin.lat];
+            const map = mapRef.current;
+            if (!map) return;
+
+            // 2. Create a 'bounds' object to fit both points.
+            const bounds = new mapboxgl.LngLatBounds(userCoords, pinCoords);
+
+            // 3. Animate the map to show the full overview.
+            map.fitBounds(bounds, {
+                padding: { top: 80, bottom: 80, left: 60, right: 60 },
+                essential: true
+            });
+            
+            // 4. Add/update the user location marker.
+            if (userMarker) {
+                userMarker.setLngLat(userCoords);
+            } else {
+                const newMarker = new mapboxgl.Marker({ color: "#3887be" })
+                    .setLngLat(userCoords)
+                    .addTo(map);
+                setUserMarker(newMarker);
+            }
+            
+            // 5. Fetch and draw the route (This was the missing line).
+            fetchRoute(userCoords, pinCoords);
+        }, 
+        (error) => {
+            console.error("Error getting user location:", error);
+            alert("Could not get your location. Please ensure you have enabled location services.");
+        }
+    );
+};
+
+const fetchRoute = async (start, end) => {
+    if (!mapRef.current) return;
+
+    // LOG 3: Are we trying to fetch the route?
+    console.log("%c3. Fetching route from Mapbox...", "color: orange;", { start, end });
+
+    try {
+        const response = await directionsClient.getDirections({
+            profile: 'driving-traffic', // Or 'walking', 'cycling'
+            waypoints: [
+                { coordinates: start },
+                { coordinates: end }
+            ],
+            geometries: 'geojson'
+        }).send();
+
+        // LOG 4: Did we get a response from Mapbox?
+        console.log("%c4. Received response from Mapbox:", "color: cyan;", response);
+
+        const route = response.body.routes[0].geometry.coordinates;
+        drawRoute(route);
+
+    } catch (err) {
+        console.error("Mapbox API Error:", err);
+        alert("Sorry, could not calculate the route.");
+    }
+};
+
+const drawRoute = (route) => {
+    console.log("%c--- STARTING DRAW TEST ---", "color: violet; font-weight: bold;");
+    
+    const map = mapRef.current;
+    if (!map) {
+        console.error("Test Result: FAILED. The map reference (mapRef) is not available.");
+        return;
+    }
+
+    const isMapReady = map.isStyleLoaded();
+    console.log(`Is the map ready right now? -> ${isMapReady}`);
+
+    const addDataToMap = () => {
+        if (map.getSource('route')) {
+            map.getSource('route').setData({
+                'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': route }
+            });
+        } else {
+            map.addSource('route', {
+                'type': 'geojson', 'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': route } }
+            });
+            map.addLayer({
+                'id': 'route', 'type': 'line', 'source': 'route', 'layout': { 'line-join': 'round', 'line-cap': 'round' }, 'paint': { 'line-color': '#EFBF04', 'line-width': 5, 'line-opacity': 0.75 }
+            });
+        }
+        console.log("%cTest Result: SUCCESS. The route should now be drawn on the map.", "color: limegreen; font-weight: bold;");
+    };
+
+    if (isMapReady) {
+        console.log("Conclusion: Map was already loaded. Drawing immediately.");
+        addDataToMap();
+    } else {
+        console.log("Conclusion: Map was NOT ready. Waiting for the 'load' event to fire...");
+        map.once('load', () => {
+            console.log("...The 'load' event has fired! Now drawing the route.");
+            addDataToMap();
+        });
+    }
+};   // End of drawRoute function
+
+
+
 
     // --- ADDITION: Function to open the story panel from the pin modal ---
     const handleReadStory = (storyId) => {
@@ -362,7 +527,18 @@ useEffect(() => {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
                     <p className="mt-4">Entering City...</p>
                 </div>
+                
             )}
+
+            <div className="absolute top-1/2 right-4 pointer-events-auto">
+            <button
+                onClick={handleGoToUserLocation} // We will create this function next
+                className="bg-white/80 backdrop-blur-sm rounded-full h-12 w-12 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                title="Go to my location"
+            >
+                <Crosshair className="h-6 w-6 text-gray-700" />
+            </button>
+            </div>
 
             {/* Bottom-center controls */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 pointer-events-auto flex items-center gap-2">
@@ -471,6 +647,7 @@ useEffect(() => {
             onClose={() => setSelectedPin(null)}
             onAddToCart={addToCart}
             onReadStory={handleReadStory}
+            onGetDirections={handleGetDirections} // Pass the new directions handler
         />
     
       </main>

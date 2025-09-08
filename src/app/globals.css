@@ -8,3 +8,11 @@ html, body, #__next {
   padding: 0;
 }
 
+.user-marker {
+  background-image: url('/user-marker.png');
+  background-size: cover;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import ProductDetail from './ProductDetail';
 import { useCart } from "@/context/CartContext";
-import { ArrowLeft, X, ShoppingBag, BookOpen, Calendar, Clock, User } from 'lucide-react';import clsx from 'clsx';
+import { ArrowLeft, X, ShoppingBag, BookOpen, Calendar, Clock, User, MapPin  } from 'lucide-react';import clsx from 'clsx';
 
 // --- Constants for API endpoints ---
 const BOOKINGS_API_URL = 'https://data.hyrosy.com';
@@ -35,7 +35,7 @@ const fetchProductsFromSource = async (baseUrl, key, secret, { productId, catego
 };
 
 
-const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory  }) => { // Removed unused props
+const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory, onGetDirections  }) => { // Removed unused props
     const { addToCart } = useCart();
     
     // State for managing the modal's multi-window view
@@ -198,19 +198,29 @@ const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory  }) => { // Removed
             />
             )}
                 {(hasBookings || hasProducts || hasStory) && (
-                    <div className="mt-6 pt-4 border-t border-gray-700">              
+                    <div className="mt-6 pt-4 border-t border-gray-700"> 
+                    <button 
+                    onClick={() => onGetDirections(pin)}
+                    className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg flex items-center justify-center transition-colors"
+                >
+                    <MapPin className="w-4 h-4 mr-2"/>
+                    Get Directions
+                   </button>             
                         <button onClick={() => setCurrentView('hub')} className="w-full h-12 bg-golden-600 hover:bg-golden-500 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
                             View Offers
                         </button>
                     </div>
                 )}
+
                 {hasStory && (
                              <button onClick={() => onReadStory(pin.acf.story_id)} className="w-full h-12 bg-golden hover:bg-golden/90 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
                                 <BookOpen className="w-4 h-4 mr-2"/>
                                 Read Story
                             </button>
                 )}
+                
             </div>
+            
         );
     };
 
