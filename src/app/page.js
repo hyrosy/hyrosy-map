@@ -31,6 +31,39 @@ const Map = dynamic(() => import('@/components/Map'), {
 });
 
 export default function Home() {
+
+    const [installPromptEvent, setInstallPromptEvent] = useState(null);
+    
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault(); // Prevents the default mini-infobar from appearing
+            setInstallPromptEvent(e); // Save the event for later
+        };
+
+        window.addEventListener('beforeinstallprompt', handler);
+
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    // We'll also need state for an iOS instruction modal
+    const [showIosInstallPopup, setShowIosInstallPopup] = useState(false);
+
+    const handleInstallClick = () => {
+        // If we have a saved prompt event (on Android), show it.
+        if (installPromptEvent) {
+            installPromptEvent.prompt();
+        } else {
+            // Otherwise, check if the user is on iOS
+            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIos) {
+                // If they are on iOS, show our custom instruction popup
+                setShowIosInstallPopup(true);
+            } else {
+                // For other browsers, you can show a generic alert
+                alert("To install, please use the 'Add to Home Screen' option in your browser's menu.");
+            }
+        }
+    };
     
     const cityData = {
     'marrakech': { name: 'Marrakech', center: [-7.98, 31.63], storyUrl: '/videos/marrakech_story.mp4' },
@@ -530,6 +563,16 @@ useEffect(() => {
                 
             )}
 
+            
+
+            {/* A simple modal to show iOS instructions */}
+            {showIosInstallPopup && (
+                <div className="ios-install-popup">
+                    <p>To install, tap the Share icon and then 'Add to Home Screen'.</p>
+                    <button onClick={() => setShowIosInstallPopup(false)}>Close</button>
+                </div>
+            )}
+
             <div className="absolute top-1/2 right-4 pointer-events-auto">
             <button
                 onClick={handleGoToUserLocation} // We will create this function next
@@ -538,6 +581,9 @@ useEffect(() => {
             >
                 <Crosshair className="h-6 w-6 text-gray-700" />
             </button>
+
+            {/* Add the "Install" button somewhere in your UI */}
+            <button onClick={handleInstallClick} className="bg-white/80 backdrop-blur-sm rounded-full h-12 w-12 flex items-center justify-center shadow-lg hover:bg-white transition-colors">App</button>
             </div>
 
             {/* Bottom-center controls */}
