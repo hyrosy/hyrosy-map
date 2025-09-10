@@ -360,12 +360,7 @@ useEffect(() => {
             setAllPins(cityPinsData);
             setDisplayedPins(cityPinsData);
 
-            // This logic for the story modal can stay
-            if (!viewedCities.has(selectedCity.name.toLowerCase())) {
-                setStoryContentUrl(selectedCity.storyUrl);
-                setStoryModalOpen(true);
-                setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
-            }
+        
 
         } catch (error) {
             console.error(`API fetch failed for ${selectedCity.name}:`, error);
@@ -377,6 +372,15 @@ useEffect(() => {
     };
     fetchCityPins();
 }, [selectedCity]); // Removed viewedCities from dependency array to prevent re-fetching
+
+useEffect(() => {
+    // This effect runs when the city changes OR when the viewedCities set is updated
+    if (selectedCity && !viewedCities.has(selectedCity.name.toLowerCase())) {
+        setStoryContentUrl(selectedCity.storyUrl);
+        setStoryModalOpen(true);
+        setViewedCities(prev => new Set(prev).add(selectedCity.name.toLowerCase()));
+    }
+}, [selectedCity, viewedCities]);
 
     // This effect saves the explored steps to localStorage whenever they change
     useEffect(() => {
@@ -568,7 +572,7 @@ useEffect(() => {
             {/* A simple modal to show iOS instructions */}
             {showIosInstallPopup && (
                 <div className="ios-install-popup">
-                    <p>To install, tap the Share icon and then 'Add to Home Screen'.</p>
+                    <p>To install, tap the Share icon and then &apos;Add to Home Screen&apos;.</p>
                     <button onClick={() => setShowIosInstallPopup(false)}>Close</button>
                 </div>
             )}
