@@ -1,23 +1,15 @@
 // In next.config.mjs
 import withPWA from 'next-pwa';
 
-// 1. Define the PWA wrapper with its options
-const withPwaConfig = withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Your regular Next.js config goes here
   experimental: {},
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'data.hyrosy.com',
-        port: '',
         pathname: '/wp-content/uploads/**',
       },
       {
@@ -28,5 +20,12 @@ const nextConfig = {
   },
 };
 
-// 3. Export the final result of wrapping your nextConfig with the PWA config
-export default withPwaConfig(nextConfig);
+// PWA configuration is now separate and wraps the main config
+const configWithPWA = withPWA({
+  dest: 'public', // This is the correct destination for App Router
+  register: true,
+  skipWaiting: true,
+  // The 'disable' flag is not needed here, as Vercel's NODE_ENV will be 'production'
+})(nextConfig);
+
+export default configWithPWA;
