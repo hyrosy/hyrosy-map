@@ -70,6 +70,23 @@ export default function Home() {
     'casablanca': { name: 'Casablanca', center: [-7.59, 33.57], storyUrl: '/videos/casablanca_story.mp4' },
     'rabat': { name: 'Rabat', center: [-6.84, 34.02], storyUrl: '/videos/rabat_story.mp4' },
     };
+
+    const categoryIconMap = {
+        39	: 'air-balloon.png',	//	air-balloon
+        37	: 'camel-ride.png',	//	camel-ride
+        38	: 'quad-bike.png',	//	quad-bike
+        44	: 'food.png',	//	food
+        35	: 'monuments.png',	//	monuments
+        45	: 'shopping.png',	//	shopping
+        40	: 'tales.png',	//	tales
+        42	: 'a-craftsman.png',	//	a-craftsman
+        33	: 'workshops.png',	//	workshops
+        34	: 'cooking-class.png',	//	cooking-class
+        47	: 'pottery-class.png',	//	pottery-class
+        48	: 'artisan-class.png',	//	artisan-class
+        36	: 'adventure1.png',	//	adventure
+    };
+
     
     const [isFilterPanelOpen, setFilterPanelOpen] = useState(false);
 
@@ -554,6 +571,10 @@ useEffect(() => {
             displayedPins={displayedPins}
             onPinClick={setSelectedPin}
             selectedCity={selectedCity}
+            categoryIconMap={categoryIconMap}
+            onLoad={(mapInstance) => {
+             mapRef.current = mapInstance; // This is the only line needed
+    }}
         />
         
         {/* This is a dedicated container for ALL UI elements that sits ON TOP of the map */}

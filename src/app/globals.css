@@ -16,3 +16,21 @@ html, body, #__next {
   border-radius: 50%;
   cursor: pointer;
 }
+
+.custom-marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  background-color: #444444;
+  border-radius: 50%;
+  border: 2px solid rgb(255, 215, 0);
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+
+.custom-marker img {
+  width: 16px;  /* This will correctly size your icon */
+  height: 16px;
+}
