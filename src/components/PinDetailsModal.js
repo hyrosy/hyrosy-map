@@ -4,7 +4,93 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import ProductDetail from './ProductDetail';
 import { useCart } from "@/context/CartContext";
-import { ArrowLeft, X, ShoppingBag, BookOpen, Calendar, Clock, User, MapPin  } from 'lucide-react';import clsx from 'clsx';
+import { ArrowLeft, X, ShoppingBag, BookOpen, Calendar, Clock, User, MapPin, ThumbsUp, ThumbsDown, Trash2, PlusCircle } from 'lucide-react';
+import clsx from 'clsx';
+
+import { Button } from "@/components/ui/button"; // Using Button for consistency
+
+// --- NEW IMPORTS FOR COMMENTS ---
+import { useAuth } from '@/context/AuthContext';
+import useComments from '@/hooks/useComments';
+import CommentForm from './CommentForm';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import AddToExperiencePopover from './AddToExperiencePopover';
+
+// --- NEW SUB-COMPONENT FOR A SINGLE COMMENT ---
+const Comment = ({ comment, session, onDelete, onVote }) => {
+    const isOwner = session?.user?.id === comment.user_id;
+    // Determine if the current user has upvoted or downvoted
+    const { upvotes, downvotes, userVote } = comment;    
+    const hasUpvoted = userVote === true;
+    const hasDownvoted = userVote === false;
+
+
+    return (
+        <div className="py-4 border-b border-gray-700 last:border-b-0">
+            {/* The username is now the only item at the top */}
+            <p className="font-semibold text-sm text-white mb-2">{comment.profiles?.username || 'Anonymous'}</p>
+            
+            {comment.image_urls && comment.image_urls.length > 0 && (
+                <Carousel className="w-full max-w-xs mx-auto my-2">
+                    <CarouselContent>
+                        {comment.image_urls.map((url, index) => (
+                            <CarouselItem key={index}>
+                                <div className="relative aspect-[4/3]">
+                                    <Image src={url} alt={`Comment image ${index + 1}`} fill className="rounded-lg object-cover" />
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="text-white" />
+                    <CarouselNext className="text-white" />
+                </Carousel>
+            )}
+
+            <p className="text-gray-300 prose prose-sm prose-invert mb-3">{comment.content}</p>
+
+            {/* --- ACTION ROW --- */}
+            {/* This div now wraps all the buttons at the bottom */}
+            <div className="flex justify-between items-center">
+                {/* This div groups the like/dislike buttons together on the left */}
+                <div className="flex items-center gap-4 text-gray-400">
+                    <button
+                        onClick={() => session && onVote(comment.id, true, userVote)}
+                        disabled={!session}
+                        className={clsx("flex items-center gap-1 text-xs", {
+                            "text-green-400": hasUpvoted,
+                            "hover:text-green-400": !hasUpvoted && session,
+                            "cursor-not-allowed": !session
+                        })}
+                    >
+                        <ThumbsUp size={14} /> {upvotes}
+                    </button>
+                    
+                    <button
+                        onClick={() => session && onVote(comment.id, false, userVote)}
+                        disabled={!session}
+                        className={clsx("flex items-center gap-1 text-xs", {
+                            "text-red-400": hasDownvoted,
+                            "hover:text-red-400": !hasDownvoted && session,
+                            "cursor-not-allowed": !session
+                        })}
+                    >
+                        <ThumbsDown size={14} /> {downvotes}
+                    </button>
+                    </div>
+
+                {/* The delete button now lives here, on the right */}
+                {isOwner && (
+                    <button onClick={() => onDelete(comment.id)} className="text-gray-400 hover:text-red-500" aria-label="Delete comment">
+                        <Trash2 size={14} />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
 
 // --- Constants for API endpoints ---
 const BOOKINGS_API_URL = 'https://data.hyrosy.com';
@@ -49,11 +135,30 @@ const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory, onGetDirections  }
     const [bookings, setBookings] = useState({ status: 'idle', data: [] });
     const [physicalProducts, setPhysicalProducts] = useState({ status: 'idle', data: [] });
 
+
+    // --- HOOKS FOR AUTH AND COMMENTS ---
+    const { session } = useAuth();
+    const { comments, loadingInitial, hasMore, fetchMoreComments, postComment, deleteComment, handleVote } = useComments(pin?.id);
+    const [popoverOpen, setPopoverOpen] = useState(false); // State to control the popover
+
+    // Inside PinDetailsModal.js, replace your existing handlePostComment function
+    const handlePostComment = async (content, imageUrls) => {
+        if (!session?.user) return;
+        // Correctly pass an object to the postComment hook function
+        await postComment({ 
+            content: content, 
+            userId: session.user.id, 
+            wordpressLocationId: pin.id, 
+            imageUrls: imageUrls 
+        });
+    };
+
+
+
     // --- Derived State ---
     // Calculate once and reuse. Prevents re-calculation on every render.
     const hasBookings = !!(pin?.acf.bookable_product_id || pin?.acf.bookable_experiences_category_id);
     const hasProducts = !!(pin?.acf.connector_id || pin?.acf.category_connector_id);
-
     // Check if a story is linked
     const hasStory = !!pin?.acf.story_id;
 
@@ -197,6 +302,60 @@ const PinDetailsModal = ({ pin, isOpen, onClose, onReadStory, onGetDirections  }
                 dangerouslySetInnerHTML={{ __html: pin.acf.description }} 
             />
             )}
+
+
+            {/* --- NEW: COMMENTS SECTION INSERTED HERE --- */}
+                <div className="mt-6 pt-4 border-t border-gray-700">
+                    <h3 className="text-lg font-semibold text-white mb-2">Community Tips</h3>
+                    {session ? (
+                        <CommentForm locationId={pin.id} onCommentPosted={handlePostComment} />
+                    ) : (
+                        <div className="text-center py-4 px-4 bg-gray-800 rounded-lg my-4">
+                            <p className="font-semibold text-white">Sign in to leave a comment</p>
+                            {/* This button should trigger the AuthPanel in page.js */}
+                            {/* <Button size="sm" className="mt-2">Sign In</Button> */}
+                        </div>
+                    )}
+                    
+                    {loadingInitial ? (
+                        <p className="py-4 text-gray-400">Loading tips...</p>
+                    ) : (
+                        <div>
+                            {comments.length > 0 ? (
+                                comments.map(comment => 
+                                <Comment 
+                                    key={comment.id} 
+                                    comment={comment} 
+                                    session={session} 
+                                    onDelete={deleteComment} 
+                                    onVote={handleVote}
+                                />
+                            )
+                            ) : (
+                                <p className="py-4 text-gray-400">Be the first to leave a tip!</p>
+                            )}
+                            {hasMore && (
+                                <Button variant="link" onClick={fetchMoreComments} className="w-full mt-2 text-cyan-400">
+                                    Load More
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+                    {/* --- NEW "ADD TO EXPERIENCE" POPOVER BUTTON --- */}
+                    {session && (
+                        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button className="w-full h-12 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg flex items-center justify-center transition-colors">
+                                    <PlusCircle className="w-4 h-4 mr-2"/> Add to Experience
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                <AddToExperiencePopover pin={pin} closePopover={() => setPopoverOpen(false)} />
+                            </PopoverContent>
+                        </Popover>
+                    )}
+
                 {(hasBookings || hasProducts || hasStory) && (
                     <div className="mt-6 pt-4 border-t border-gray-700"> 
                     <button 

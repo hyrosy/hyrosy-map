@@ -2,6 +2,9 @@
 
 import { CartProvider } from '@/context/CartContext';
 import { usePathname } from 'next/navigation';
+import { AuthProvider } from "@/context/AuthContext"; // 1. Import AuthProvider
+import { RouteBuilderProvider } from "@/context/RouteBuilderContext"; // 1. Import
+
 
 export function Providers({ children }) {
   const pathname = usePathname();
@@ -10,9 +13,12 @@ export function Providers({ children }) {
   const isMapPage = pathname === '/';
   
   return (
+    <AuthProvider>
     <CartProvider>
-      {/* You can add logic here to show/hide components based on the page */}
-      {children}
+      <RouteBuilderProvider>
+        {children}
+      </RouteBuilderProvider>
     </CartProvider>
+    </AuthProvider>
   );
 }
