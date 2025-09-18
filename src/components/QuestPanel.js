@@ -406,7 +406,7 @@ const QuestPanel = ({ isOpen, onClose, activeQuest, quests, currentStepIndex, on
                                 <p className="text-xs text-gray-400">{route.stops.length} stops</p>
                             </button>
                         ))
-                    ) : <p className="text-gray-400 text-center py-4">You haven't created any experiences yet.</p>
+                    ) : <p className="text-gray-400 text-center py-4">You haven&apos;t created any experiences yet.</p>
                 )}
             </div>
         );
